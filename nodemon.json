@@ -1,0 +1,10 @@
+{
+  "ignore": [],
+  "verbose": false,
+  "watch": ["./dist/", "./config/"],
+  "delay": 2500,
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "ext": "js json ts yaml yml"
+}

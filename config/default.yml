@@ -1,0 +1,28 @@
+keycloak:
+  server_url: https://keycloak/auth
+  masterRealm: master
+  realm: realm-name
+  auth:
+    username: 'admin'
+    password: 'admin123'
+    grantType: 'password'
+    clientId: 'admin-cli'
+    clientSecret: 'adf8ab97-0566-407a-bbf3-e9dc0878d56a'
+
+log4js:
+  appenders:
+    default:
+      type: console
+  categories:
+    default:
+      appenders:
+        - default
+      level: debug
+
+k8s:
+  namespaces:
+    - a6s-lab
+    - default
+  resource:
+    name: keycloakclients
+    apiVersion: apigeeks.com/v1

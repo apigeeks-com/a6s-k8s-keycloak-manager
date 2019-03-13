@@ -1,0 +1,15 @@
+{{- if .Values.rbacEnabled }}
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ template "fullname" . }}-endpoint-reader
+  labels:
+    app: {{ template "name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+rules:
+- apiGroups: ["apigeeks.com"]
+  resources: ["keycloakclients"]
+  verbs: ["get", "list", "watch"]
+{{- end }}

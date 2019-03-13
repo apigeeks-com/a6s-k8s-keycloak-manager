@@ -1,0 +1,70 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: {{ template "fullname" . }}
+  labels:
+    app: {{ template "name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "name" . }}
+        release: {{ .Release.Name }}
+    spec:
+      {{- if .Values.rbacEnabled}}
+      serviceAccountName: {{ template "fullname" . }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+          {{- range $key, $value := .Values.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+          {{- end }}
+          volumeMounts:
+{{- range $key, $value := .Values.volumes.secret }}
+            - name: {{ $value.name }}
+              mountPath: {{ $value.mountPath }}
+              readOnly: true
+{{- end }}
+{{- range $key, $value := .Values.volumes.configMap }}
+            - name: {{ $value.name }}
+              mountPath: {{ $value.mountPath }}
+              readOnly: true
+{{- end }}
+{{- range $key, $value := .Values.volumes.persistentVolumeClaim }}
+            - name: {{ $value.name }}
+              mountPath: {{ $value.mountPath }}
+{{- end }}
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+    {{- if .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+    {{- end }}
+      imagePullSecrets:
+{{- range $key, $value := .Values.image.pullSecrets }}
+        - name: {{ $value | quote }}
+{{- end }}
+      volumes:
+{{- range $key, $value := .Values.volumes.secret }}
+        - name: {{ $value.name }}
+          secret:
+            secretName: {{ $value.name }}
+{{- end }}
+{{- range $key, $value := .Values.volumes.configMap }}
+        - name: {{ $value.name }}
+          configMap:
+            name: {{ $value.name }}
+{{- end }}
+{{- range $key, $value := .Values.volumes.persistentVolumeClaim }}
+        - name: {{ $value.name }}
+          persistentVolumeClaim:
+            claimName: {{ $value.name }}
+{{- end }}
