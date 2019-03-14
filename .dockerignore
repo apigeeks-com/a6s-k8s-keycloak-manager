@@ -1,43 +1,7 @@
-#Docker
-docker-compose.env
-docker-compose.yml
-Dockerfile
+*
 
-helm
-
-# IDE
-.idea/*
-.vscode/*
-*.iml
-
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# NPM
-node_modules
-.npm
-.npmrc
-.nvmrc
-package-lock.json
-
-# Tests
-lib-cov
-coverage
-.nyc_output
-
-# Project
-tslint.json
-.npmignore
-config/credentials.yml
-.commitlintrc.yml
-.czrc
-.dockerignore
-.huskyrc.yml
-.lintstagedrc.yml
-.prettierignore
-.prettierrc.yml
-nodemon.json
+!src/
+!config/
+!package.json
+!yarn.lock
+!tsconfig.json

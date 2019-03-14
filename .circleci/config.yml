@@ -1,0 +1,100 @@
+# requires following ENV vars to be registered in CircleCI :
+#
+# [optional] configuration of private docker repo from where to load the source image(s)
+# DOCKER_PULL_HOST - the name of docker repository host from where to pull private dependencies if any
+# DOCKER_PULL_USERNAME
+# DOCKER_PULL_PASSWORD
+# 
+# [required]
+# DOCKER_PUSH_HOST - the name of docker repository host to push image to
+# DOCKER_PUSH_USERNAME
+# DOCKER_PUSH_PASSWORD
+#
+version: 2
+
+defaults: &defaults
+  environment:
+    DOCKER_IMAGE_NAME: a6s-k8s-keycloak-manager
+    
+  working_directory: ~/repo
+  docker:
+    - image: circleci/node:10
+
+jobs:
+  build:
+    <<: *defaults
+    steps:
+      - checkout
+      
+      - setup_remote_docker
+
+      - run:
+          command: |
+            mkdir docker-cache/
+            
+            
+            if [[ -z "$CIRCLE_BUILD_NUM" ]]; then                            
+              if [[ -z "$DOCKER_PULL_HOST" ]]; then
+                sudo docker login -u $DOCKER_PULL_USERNAME -p $DOCKER_PULL_PASSWORD $DOCKER_PULL_HOST
+              fi
+
+              sudo docker build -t $DOCKER_IMAGE_NAME:latest .
+              sudo docker save -o docker-cache/image.tar $DOCKER_IMAGE_NAME:latest
+            else          
+              if [[ -z "$DOCKER_PULL_HOST" ]]; then
+                docker login -u $DOCKER_PULL_USERNAME -p $DOCKER_PULL_PASSWORD $DOCKER_PULL_HOST
+              fi
+                              
+              docker build -t $DOCKER_IMAGE_NAME:latest .
+              docker save -o docker-cache/image.tar $DOCKER_IMAGE_NAME:latest              
+            fi
+      - save_cache:
+          key: docker-cache-{{ .Branch }}-{{ .Revision }}
+          paths:
+            - docker-cache
+  
+  deploy:
+    <<: *defaults
+    steps:
+      - restore_cache:
+          keys:
+            - docker-cache-{{ .Branch }}-{{ .Revision }}
+      
+      - setup_remote_docker
+
+      - run: 
+          command: |
+            if [[ -z "$CIRCLE_BUILD_NUM" ]]; then                            
+              sudo docker load < docker-cache/image.tar
+              sudo docker tag $DOCKER_IMAGE_NAME:latest $DOCKER_PUSH_HOST/$DOCKER_IMAGE_NAME:$CIRCLE_TAG
+              sudo docker tag $DOCKER_IMAGE_NAME:latest $DOCKER_PUSH_HOST/$DOCKER_IMAGE_NAME:latest
+              sudo docker login -u $DOCKER_PUSH_USERNAME -p $DOCKER_PUSH_PASSWORD $DOCKER_PUSH_HOST              
+
+              sudo docker push $DOCKER_PUSH_HOST/$DOCKER_IMAGE_NAME:$CIRCLE_TAG
+              sudo docker push $DOCKER_PUSH_HOST/$DOCKER_IMAGE_NAME:latest
+            else
+              docker load < docker-cache/image.tar
+              docker tag $DOCKER_IMAGE_NAME:latest $DOCKER_PUSH_HOST/$DOCKER_IMAGE_NAME:$CIRCLE_TAG
+              docker tag $DOCKER_IMAGE_NAME:latest $DOCKER_PUSH_HOST/$DOCKER_IMAGE_NAME:latest
+              docker login -u $DOCKER_PUSH_USERNAME -p $DOCKER_PUSH_PASSWORD $DOCKER_PUSH_HOST              
+
+              docker push $DOCKER_PUSH_HOST/$DOCKER_IMAGE_NAME:$CIRCLE_TAG
+              docker push $DOCKER_PUSH_HOST/$DOCKER_IMAGE_NAME:latest
+            fi
+
+workflows:
+  version: 2
+  build_and_deploy:
+    jobs:
+      - build:
+          filters:
+            tags:
+              only: /^[0-9]+\.[0-9]+\.[0-9]+/
+      - deploy:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /^[0-9]+\.[0-9]+\.[0-9]+/
+            branches:
+              ignore: /.*/
