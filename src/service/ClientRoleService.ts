@@ -26,7 +26,7 @@ export class ClientRoleService {
           ? await this.keycloakAdmin.api.clients.listRoles({ id: client.id, realm: config.get('keycloak.realm') })
           : []
         ;
-        this.logger.info(`Update or install roles`);
+        this.logger.debug(`Update or install roles`);
         this.logger.debug(`Exist roles: \n${prettyjson.render(existingRoles)}`);
 
         if (!client.id) {
