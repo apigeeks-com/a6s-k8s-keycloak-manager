@@ -14,3 +14,4 @@ export interface IKeycloakClientResourceSpec extends ClientRepresentation {
     clientRoleMappers?: string[];
     clientId: string;
 }
+
