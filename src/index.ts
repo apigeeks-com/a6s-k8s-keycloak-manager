@@ -10,7 +10,8 @@ axios.default.interceptors.response.use(
     (response: axios.AxiosResponse) => response,
     (error: any) => {
         console.log(error.response); // tslint:disable-line
-        throw error;
+
+        return Promise.reject(error);
     },
 );
 
