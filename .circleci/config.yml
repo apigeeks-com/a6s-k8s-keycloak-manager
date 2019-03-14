@@ -34,14 +34,14 @@ jobs:
             
             
             if [[ -z "$CIRCLE_BUILD_NUM" ]]; then                            
-              if [[ -z "$DOCKER_PULL_HOST" ]]; then
+              if [[! -z "$DOCKER_PULL_HOST" ]]; then                
                 sudo docker login -u $DOCKER_PULL_USERNAME -p $DOCKER_PULL_PASSWORD $DOCKER_PULL_HOST
               fi
 
               sudo docker build -t $DOCKER_IMAGE_NAME:latest .
               sudo docker save -o docker-cache/image.tar $DOCKER_IMAGE_NAME:latest
             else          
-              if [[ -z "$DOCKER_PULL_HOST" ]]; then
+              if [[! -z "$DOCKER_PULL_HOST" ]]; then
                 docker login -u $DOCKER_PULL_USERNAME -p $DOCKER_PULL_PASSWORD $DOCKER_PULL_HOST
               fi
                               
