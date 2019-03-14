@@ -1,6 +1,6 @@
 {
   "name": "a6s-k8s-keycloak-manager",
-  "version": "1.0.0",
+  "version": "0.1.1",
   "description": "a6s-k8s-keycloak-manager",
   "main": "dist/index.js",
   "scripts": {
@@ -18,8 +18,8 @@
     "version": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0 && git add CHANGELOG.md",
     "commit": "npx git-cz"
   },
-  "author": "Igor Ognichenko <igor.ognichenko@fireblink.com>",
-  "license": "UNLICENSED",
+  "author": "APIGeeks",
+  "license": "MIT",
   "private": true,
   "dependencies": {
     "@fireblink/k8s-api-client": "^1.0.1",
