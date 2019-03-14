@@ -8,6 +8,7 @@ import { IKeycloakUser } from '../interface';
 import { RolesService } from './RolesService';
 import ClientRepresentation from 'keycloak-admin/lib/defs/clientRepresentation';
 import { ProcessException } from '../exception';
+import { config } from '../utils/config';
 
 @Service()
 export class UsersService {
@@ -22,13 +23,14 @@ export class UsersService {
 
     async create({ password, ...user }: IKeycloakUser) {
         this.logger.debug(`Create user: \n${prettyjson.render(user)}`);
-        await this.keycloakAdmin.api.users.create(user);
+        await this.keycloakAdmin.api.users.create({...user, realm: config.get('keycloak.realm')});
 
         this.logger.debug('Set user password');
 
         const userFound = (await this.findOne(user.email)) as IKeycloakUser;
 
         await this.keycloakAdmin.api.users.resetPassword({
+            realm: config.get('keycloak.realm'),
             id: userFound.id,
             credential: {
                 temporary: false,
@@ -40,11 +42,12 @@ export class UsersService {
 
     async update(id: string, { password, ...user }: IKeycloakUser) {
         this.logger.debug(`Update user: \n${prettyjson.render(user)}`);
-        await this.keycloakAdmin.api.users.update({ id }, user);
+        await this.keycloakAdmin.api.users.update({ id, realm: config.get('keycloak.realm') }, user);
 
         this.logger.debug('Update user password');
         await this.keycloakAdmin.api.users.resetPassword({
             id,
+            realm: config.get('keycloak.realm'),
             credential: {
                 temporary: false,
                 type: 'password',
@@ -68,7 +71,7 @@ export class UsersService {
 
             // Append to group
             if (userFound && user.groups && Array.isArray(user.groups)) {
-                const groups = await this.keycloakAdmin.api.groups.find();
+                const groups = await this.keycloakAdmin.api.groups.find({realm: config.get('keycloak.realm')});
 
                 await Promise.all(
                     user.groups.map(async groupName => {
@@ -79,6 +82,7 @@ export class UsersService {
                         if (group) {
                             this.keycloakAdmin.api.users.addToGroup({
                                 id: userFound.id,
+                                realm: config.get('keycloak.realm'),
                                 groupId: (group as any).id,
                             });
                         } else {
@@ -93,6 +97,7 @@ export class UsersService {
                 await Promise.all(
                     Object.entries(user.clientRoles).map(async ([clientName, roles]) => {
                         const clientList = await this.keycloakAdmin.api.clients.find({
+                            realm: config.get('keycloak.realm'),
                             clientId: clientName,
                         });
 
@@ -107,6 +112,7 @@ export class UsersService {
                         if (appendRoles) {
                             // TODO: It may be necessary to remove irrelevant roles.
                             await this.keycloakAdmin.api.users.addClientRoleMappings({
+                                realm: config.get('keycloak.realm'),
                                 id: (userFound as any).id,
                                 clientUniqueId: (client as any).id,
                                 roles: <RoleMappingPayload[]>appendRoles,
@@ -122,7 +128,7 @@ export class UsersService {
 
     private async findOne(email: string) {
         this.logger.debug(`Find user by email: ${email}`);
-        const users = await this.keycloakAdmin.api.users.find({ email: email });
+        const users = await this.keycloakAdmin.api.users.find({ email: email, realm: config.get('keycloak.realm') });
 
         if (users.length) {
             return users.pop();

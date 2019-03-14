@@ -60,7 +60,7 @@ export class ClientService {
         await this.processingBeforeCreate(clientScopes);
 
         this.logger.debug(`Create client: \n${prettyjson.render(clientOptions)}`);
-        await this.keycloakAdmin.api.clients.create(clientOptions);
+        await this.keycloakAdmin.api.clients.create({...clientOptions, realm: config.get('keycloak.realm')});
 
         const client = await this.findOne(clientOptions.clientId);
 
@@ -100,7 +100,10 @@ export class ClientService {
 
             this.logger.debug(`Update client: \n${prettyjson.render(clientOptions)}`);
 
-            await this.keycloakAdmin.api.clients.update({ id: client.id }, clientOptions);
+            await this.keycloakAdmin.api.clients.update(
+                { id: client.id, realm: config.get('keycloak.realm') },
+                clientOptions
+            );
             await this.processingAfterCreate(
                 client,
                 clientRoles,
@@ -133,7 +136,7 @@ export class ClientService {
 
         if (client && client.id) {
             this.logger.debug(`Remove client: \n${prettyjson.render(clientOptions)}`);
-            await this.keycloakAdmin.api.clients.del({ id: client.id });
+            await this.keycloakAdmin.api.clients.del({ id: client.id, realm: config.get('keycloak.realm') });
             // TODO: need remove users and groups
         }
     }

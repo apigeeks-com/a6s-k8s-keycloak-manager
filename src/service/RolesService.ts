@@ -5,6 +5,7 @@ import { KeycloakAdminService } from './KeycloakAdminService';
 import { Logger } from 'log4js';
 import RoleRepresentation from 'keycloak-admin/lib/defs/roleRepresentation';
 import ClientRepresentation from 'keycloak-admin/lib/defs/clientRepresentation';
+import { config } from '../utils/config';
 
 @Service()
 export class RolesService {
@@ -49,6 +50,7 @@ export class RolesService {
 
         const listRoles: RoleRepresentation[] = await this.keycloakAdmin.api.clients.listRoles({
             id: (client as any).id,
+            realm: config.get('keycloak.realm')
         });
 
         this.logger.debug(`Mapping roles \n: ${roles}`);

@@ -3,12 +3,12 @@ import { Logger } from 'log4js';
 import { Inject, Service } from 'typedi';
 import { RoleMappingPayload } from 'keycloak-admin/lib/defs/roleRepresentation';
 import GroupRepresentation from 'keycloak-admin/lib/defs/groupRepresentation';
-import RoleRepresentation from 'keycloak-admin/lib/defs/roleRepresentation';
 import { InjectLogger } from '../decorator';
 import { KeycloakAdminService } from './KeycloakAdminService';
 import { RolesService } from './RolesService';
 import ClientRepresentation from 'keycloak-admin/lib/defs/clientRepresentation';
 import { ProcessException } from '../exception';
+import { config } from '../utils/config';
 
 @Service()
 export class GroupService {
@@ -23,12 +23,12 @@ export class GroupService {
 
     async create(group: GroupRepresentation) {
         this.logger.debug(`Create group: \n${prettyjson.render(group)}`);
-        await this.keycloakAdmin.api.groups.create(group);
+        await this.keycloakAdmin.api.groups.create({...group, realm: config.get('keycloak.realm')});
     }
 
     async update(id: string, group: GroupRepresentation) {
         this.logger.debug(`Update group: \n${prettyjson.render(group)}`);
-        await this.keycloakAdmin.api.groups.update({ id }, group);
+        await this.keycloakAdmin.api.groups.update({ id, realm: config.get('keycloak.realm') }, group);
     }
 
     async updateOrCreate(associatedGroups: GroupRepresentation[]) {
@@ -49,6 +49,7 @@ export class GroupService {
                 await Promise.all(
                     Object.entries(group.clientRoles).map(async ([clientName, roles]) => {
                         const clientList = await this.keycloakAdmin.api.clients.find({
+                            realm: config.get('keycloak.realm'),
                             clientId: clientName,
                         });
 
@@ -66,6 +67,7 @@ export class GroupService {
                                 id: foundGroup.id,
                                 clientUniqueId: (client as any).id,
                                 roles: <RoleMappingPayload[]>appendRoles,
+                                realm: config.get('keycloak.realm')
                             });
                         }
                     }),
@@ -79,7 +81,7 @@ export class GroupService {
     private async findOne(name: string) {
         this.logger.debug(`Find group by name: ${name}`);
 
-        const list = await this.keycloakAdmin.api.groups.find();
+        const list = await this.keycloakAdmin.api.groups.find({realm: config.get('keycloak.realm')});
 
         if (list) {
             const group = list.find(g => g.name === name);

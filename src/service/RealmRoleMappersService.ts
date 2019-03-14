@@ -6,6 +6,7 @@ import { RoleMappingPayload } from 'keycloak-admin/lib/defs/roleRepresentation';
 import UserRepresentation from 'keycloak-admin/lib/defs/userRepresentation';
 import { InjectLogger } from '../decorator';
 import { KeycloakAdminService } from './KeycloakAdminService';
+import { config } from '../utils/config';
 
 @Service()
 export class RealmRoleMappersService {
@@ -24,6 +25,7 @@ export class RealmRoleMappersService {
 
         const serviceAccount = (await this.keycloakAdmin.api.clients.getServiceAccountUser({
             id: client.id,
+            realm: config.get('keycloak.realm')
         })) as UserRepresentation & { id: string };
 
         if (!serviceAccount) {
@@ -32,12 +34,16 @@ export class RealmRoleMappersService {
 
         await Promise.all(
             roles.map(async role => {
-                const foundRole = await this.keycloakAdmin.api.roles.findOneByName({ name: role });
+                const foundRole = await this.keycloakAdmin.api.roles.findOneByName({
+                    name: role,
+                    realm: config.get('keycloak.realm')
+                });
 
                 if (foundRole) {
                     return await this.keycloakAdmin.api.users.addRealmRoleMappings({
                         id: serviceAccount.id,
                         roles: [foundRole as RoleMappingPayload],
+                        realm: config.get('keycloak.realm')
                     });
                 }
 

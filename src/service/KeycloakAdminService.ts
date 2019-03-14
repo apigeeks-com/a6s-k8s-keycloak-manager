@@ -26,6 +26,8 @@ export class KeycloakAdminService {
     }
 
     get api() {
+        this.keyCloakAdminClient.setConfig({ realmName: config.get('keycloak.realm') });
+
         return this.keyCloakAdminClient;
     }
 }
