@@ -6,18 +6,19 @@ import { getLogger } from 'log4js';
 import { AuthException, ProcessException } from '../exception';
 
 const keycloakManagerService = Container.get(ClientService);
-const k8sApiRequest = new APIRequestProcessor();
-const watchRequest = new WatchRequestProcessor();
 
 const logger = getLogger('watch');
 
 export async function resourceWatchProcess(resourceUrl: string) {
     try {
+        const k8sApiRequest = new APIRequestProcessor();
         const response = await k8sApiRequest.getAll(resourceUrl);
 
         await Promise.all(
             response.items.map(async resourceItem => await keycloakManagerService.createOrUpdate(resourceItem.spec)),
         );
+
+        const watchRequest = new WatchRequestProcessor();
 
         await watchRequest.watch(
             resourceUrl,
