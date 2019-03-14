@@ -4,7 +4,7 @@ keycloak:
   realm: realm-name
   auth:
     username: 'admin'
-    password: 'admin123'
+    password: 'admin'
     grantType: 'password'
     clientId: 'admin-cli'
     clientSecret: 'adf8ab97-0566-407a-bbf3-e9dc0878d56a'
@@ -21,7 +21,8 @@ log4js:
 
 k8s:
   namespaces:
-    - a6s-lab
+    - master
+    - lab
     - default
   resource:
     name: keycloakclients
