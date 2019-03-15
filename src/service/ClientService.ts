@@ -16,6 +16,7 @@ import { InjectLogger } from '../decorator';
 import { config } from '../utils/config';
 import { RolesService } from './RolesService';
 import { ProcessException } from '../exception';
+import { RealmRoleService } from './RealmRoleService';
 
 @Service()
 export class ClientService {
@@ -24,6 +25,9 @@ export class ClientService {
 
     @Inject()
     private clientRoleService!: ClientRoleService;
+
+    @Inject()
+    private realmRoleService!: RealmRoleService;
 
     @Inject()
     private clientRoleMappersService!: ClientRoleMappersService;
@@ -54,10 +58,11 @@ export class ClientService {
         associatedGroups,
         clientScopes,
         scopeRealmMappers,
+        realmRoles,
         ...clientOptions
     }: IKeycloakClientResourceSpec) {
         await this.keycloakAdmin.auth();
-        await this.processingBeforeCreate(clientScopes);
+        await this.processingBeforeCreate(realmRoles, clientScopes);
 
         this.logger.debug(`Create client: \n${prettyjson.render(clientOptions)}`);
         await this.keycloakAdmin.api.clients.create({...clientOptions, realm: config.get('keycloak.realm')});
@@ -85,6 +90,7 @@ export class ClientService {
         associatedGroups,
         clientScopes,
         scopeRealmMappers,
+        realmRoles,
         ...clientOptions
     }: IKeycloakClientResourceSpec) {
         await this.keycloakAdmin.auth();
@@ -96,7 +102,7 @@ export class ClientService {
         }
 
         if (client && client.id) {
-            await this.processingBeforeCreate(clientScopes);
+            await this.processingBeforeCreate(realmRoles, clientScopes);
 
             this.logger.debug(`Update client: \n${prettyjson.render(clientOptions)}`);
 
@@ -124,6 +130,7 @@ export class ClientService {
         associatedGroups,
         clientScopes,
         scopeRealmMappers,
+        realmRoles,
         ...clientOptions
     }: IKeycloakClientResourceSpec) {
         await this.keycloakAdmin.auth();
@@ -149,6 +156,7 @@ export class ClientService {
         associatedGroups,
         clientScopes,
         scopeRealmMappers,
+        realmRoles,
         ...clientOptions
     }: IKeycloakClientResourceSpec) {
         this.logger.debug(`Create or update client: ${clientOptions.clientId}`);
@@ -165,6 +173,7 @@ export class ClientService {
                 associatedGroups,
                 clientScopes,
                 scopeRealmMappers,
+                realmRoles,
             });
         } else {
             await this.create({
@@ -176,6 +185,7 @@ export class ClientService {
                 associatedGroups,
                 clientScopes,
                 scopeRealmMappers,
+                realmRoles,
             });
         }
     }
@@ -197,9 +207,13 @@ export class ClientService {
         }
     }
 
-    private async processingBeforeCreate(clientScopes?: IKeycloakScope[]) {
+    private async processingBeforeCreate(realmRoles?: RoleRepresentation[], clientScopes?: IKeycloakScope[]) {
         if (clientScopes) {
             await this.clientScopesService.updateOrCreate(clientScopes);
+        }
+
+        if (realmRoles) {
+            await this.realmRoleService.updateOrCreate(realmRoles);
         }
     }
 
