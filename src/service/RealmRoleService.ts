@@ -4,18 +4,14 @@ import { config } from '../utils/config';
 import { BaseRoleService } from './BaseRoleService';
 
 @Service()
-export class ClientRoleService extends BaseRoleService {
-    protected async listRoles(clientId?: string) {
-        return clientId
-           ? await this.keycloakAdmin.api.clients.listRoles({ id: clientId, realm: config.get('keycloak.realm') })
-           : []
-        ;
+export class RealmRoleService extends BaseRoleService {
+    protected async listRoles() {
+        return await this.keycloakAdmin.api.roles.find(({ realm: config.get('keycloak.realm') } as any));
     }
 
     protected async create(role: RoleRepresentation, clientId: string) {
-        await this.keycloakAdmin.api.clients.createRole({
+        await this.keycloakAdmin.api.roles.create({
             ...role,
-            id: clientId,
             realm: config.get('keycloak.realm'),
         });
 
@@ -23,10 +19,9 @@ export class ClientRoleService extends BaseRoleService {
     }
 
     protected async update(role: RoleRepresentation, clientId: string) {
-        await this.keycloakAdmin.api.clients.updateRole(
+        await this.keycloakAdmin.api.roles.updateByName(
             {
-                id: clientId,
-                roleName: (role as any).name,
+                name: (role as any).name,
                 realm: config.get('keycloak.realm')
             },
             role

@@ -7,6 +7,7 @@ import { IKeycloakScope } from './IKeycloakScope';
 export interface IKeycloakClientResourceSpec extends ClientRepresentation {
     associatedUsers?: IKeycloakUser[];
     associatedGroups?: GroupRepresentation[];
+    realmRoles?: RoleRepresentation[];
     clientRoles?: RoleRepresentation[];
     clientScopes?: IKeycloakScope[];
     scopeRealmMappers?: string[];
@@ -14,4 +15,3 @@ export interface IKeycloakClientResourceSpec extends ClientRepresentation {
     clientRoleMappers?: string[];
     clientId: string;
 }
-
