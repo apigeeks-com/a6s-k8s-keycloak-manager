@@ -7,8 +7,8 @@ rbacEnabled: true
 namespace: dev-test
 
 image:
-  repository: a6s-k8s-keycloak-manager
-  tag: 0.0.1
+  repository: apigeeks/a6s-k8s-keycloak-manager
+  tag: 0.2.2
   pullPolicy: IfNotPresent
   pullSecrets:
 

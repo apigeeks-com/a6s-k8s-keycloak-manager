@@ -1,0 +1,15 @@
+apiVersion: "apigeeks.com/v1"
+kind: KeycloakClient
+metadata:
+  name: client2
+spec:
+  clientId: "client2"
+  enabled: true
+  publicClient: true
+  clientAuthenticatorType: 'client-secret'
+  standardFlowEnabled: true
+  serviceAccountsEnabled: true
+  authorizationServicesEnabled: true
+  secret: 19a22179-6799-4664-b18e-b3f71d931ffa
+  redirectUris:
+  - "+"
