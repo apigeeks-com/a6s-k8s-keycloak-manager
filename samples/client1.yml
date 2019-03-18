@@ -1,0 +1,36 @@
+apiVersion: "apigeeks.com/v1"
+kind: KeycloakClient
+metadata:
+  name: client1
+spec:
+  clientId: "client1"
+  enabled: true
+  publicClient: true
+  clientAuthenticatorType: 'client-secret'
+  standardFlowEnabled: true
+  serviceAccountsEnabled: true
+  authorizationServicesEnabled: true
+  secret: fd417fc3-4444-4cb4-8553-28f291ccb8ce
+  redirectUris:
+    - "https://client1.host.com/*"
+  webOrigins:
+    - "client1.client1.host.com"
+  defaultClientScopes:
+    - clientscope
+  clientScopes:
+  - name: clientscope
+    realmRoles:
+    - admin
+    protocol: openid-connect
+    attributes:
+      include.in.token.scope: 'true'
+      display.on.consent.screen: 'true'
+    protocolMappers:
+      - name: ftpo
+        protocol: openid-connect
+        protocolMapper: oidc-audience-mapper
+        consentRequired: false
+        config:
+          included.client.audience: client1
+          id.token.claim: 'false'
+          access.token.claim: 'true'
