@@ -60,11 +60,17 @@ export class ClientService {
         scopeRealmMappers,
         realmRoles,
         ...clientOptions
-    }: IKeycloakClientResourceSpec) {
+    }: IKeycloakClientResourceSpec, namespace: string) {
         await this.keycloakAdmin.auth();
         await this.processingBeforeCreate(realmRoles, clientScopes);
 
+        if (config.has('keycloak.clientAttributes')) {
+            clientOptions.attributes = !clientOptions.attributes ? {} : clientOptions.attributes;
+            clientOptions.attributes = {...clientOptions.attributes, ...config.get('keycloak.clientAttributes'), ...{namespace}};
+        }
+
         this.logger.debug(`Create client: \n${prettyjson.render(clientOptions)}`);
+
         await this.keycloakAdmin.api.clients.create({...clientOptions, realm: config.get('keycloak.realm')});
 
         const client = await this.findOne(clientOptions.clientId);
@@ -92,7 +98,7 @@ export class ClientService {
         scopeRealmMappers,
         realmRoles,
         ...clientOptions
-    }: IKeycloakClientResourceSpec) {
+    }: IKeycloakClientResourceSpec, namespace: string) {
         await this.keycloakAdmin.auth();
 
         const client = await this.findOne(clientOptions.clientId);
@@ -103,6 +109,11 @@ export class ClientService {
 
         if (client && client.id) {
             await this.processingBeforeCreate(realmRoles, clientScopes);
+
+            if (config.has('keycloak.clientAttributes')) {
+                clientOptions.attributes = !clientOptions.attributes ? {} : clientOptions.attributes;
+                clientOptions.attributes = {...clientOptions.attributes, ...config.get('keycloak.clientAttributes'), ...{namespace}};
+            }
 
             this.logger.debug(`Update client: \n${prettyjson.render(clientOptions)}`);
 
@@ -158,9 +169,8 @@ export class ClientService {
         scopeRealmMappers,
         realmRoles,
         ...clientOptions
-    }: IKeycloakClientResourceSpec) {
+    }: IKeycloakClientResourceSpec, namespace: string) {
         this.logger.debug(`Create or update client: ${clientOptions.clientId}`);
-        await this.keycloakAdmin.auth();
         const client = await this.findOne(clientOptions.clientId);
 
         if (client) {
@@ -174,7 +184,7 @@ export class ClientService {
                 clientScopes,
                 scopeRealmMappers,
                 realmRoles,
-            });
+            }, namespace);
         } else {
             await this.create({
                 ...clientOptions,
@@ -186,7 +196,7 @@ export class ClientService {
                 clientScopes,
                 scopeRealmMappers,
                 realmRoles,
-            });
+            }, namespace);
         }
     }
 
