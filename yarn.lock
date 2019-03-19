@@ -203,6 +203,10 @@
   version "3.12.0"
   resolved "https://registry.yarnpkg.com/@types/js-yaml/-/js-yaml-3.12.0.tgz#3494ce97358e2675e24e97a747ec23478eeaf8b6"
 
+"@types/lodash@^4.14.123":
+  version "4.14.123"
+  resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.123.tgz#39be5d211478c8dd3bdae98ee75bb7efe4abfe4d"
+
 "@types/node@*":
   version "11.9.3"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-11.9.3.tgz#14adbb5ab8cd563f549fbae8dbe92e0b7d6e76cc"
