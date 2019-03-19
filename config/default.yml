@@ -1,5 +1,5 @@
 keycloak:
-  server_url: https://keycloak/auth
+  server_url: https://keycloak:8080/auth
   masterRealm: master
   realm: realm-name
   auth:
