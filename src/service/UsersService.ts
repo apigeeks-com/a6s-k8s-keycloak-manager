@@ -109,7 +109,7 @@ export class UsersService {
 
                         const appendRoles = await this.rolesService.findClientRoles(client, roles);
 
-                        if (appendRoles) {
+                        if (appendRoles && appendRoles.length) {
                             // TODO: It may be necessary to remove irrelevant roles.
                             await this.keycloakAdmin.api.users.addClientRoleMappings({
                                 realm: config.get('keycloak.realm'),
@@ -122,7 +122,18 @@ export class UsersService {
                 );
             }
 
-            // TODO: realm roles mapping
+            if (userFound && user.realmRoles) {
+                this.logger.debug(`Realm role mappings for user: ${user.email}`);
+                const appendRoles = await this.rolesService.findRealmRoles(user.realmRoles);
+
+                if (appendRoles && appendRoles.length) {
+                    await this.keycloakAdmin.api.users.addRealmRoleMappings({
+                        realm: config.get('keycloak.realm'),
+                        id: (userFound as any).id,
+                        roles: <RoleMappingPayload[]>appendRoles
+                    });
+                }
+            }
         });
     }
 
