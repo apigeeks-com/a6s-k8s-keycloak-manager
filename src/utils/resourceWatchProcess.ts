@@ -4,14 +4,44 @@ import { APIRequestProcessor, WatchRequestProcessor, IWatchHandlers } from '@fir
 import { ClientService, KeycloakAdminService } from '../service';
 import { IKeycloakClientResource } from '../interface';
 import { getLogger } from 'log4js';
-import { AuthException } from '../exception';
+import { AuthException, ClientException, HttpException } from '../exception';
 import { config } from './config';
 
 const keycloakManagerService = Container.get(ClientService);
 const keycloakAdminService = Container.get(KeycloakAdminService);
 const logger = getLogger('watch');
 
+const ignoredClientIDs: string[] = [];
+
+function clearIgnoreClient(clientId: string) {
+    const index = ignoredClientIDs.indexOf(clientId);
+
+    if (index > -1) {
+        ignoredClientIDs.splice(index, 1);
+    }
+}
+
+async function clientCreateOrUpdate(obj: IKeycloakClientResource, force = false) {
+    if (force) {
+        clearIgnoreClient(obj.spec.clientId);
+    }
+
+    try {
+        return await keycloakManagerService.createOrUpdate(
+            obj.spec, obj.metadata.namespace
+        );
+    } catch (e) {
+        if (e instanceof HttpException) {
+            throw new ClientException(obj.spec.clientId, e.message);
+        }
+
+        throw e;
+    }
+}
+
 export async function resourceWatchProcess(namespace: string) {
+    logger.info(`Starting watch abstractions`);
+
     try {
         const apiVersion = config.get('k8s.resource.apiVersion');
         const resourceUrl = `/apis/${apiVersion}/namespaces/${namespace}/${config.get('k8s.resource.name')}`;
@@ -63,11 +93,9 @@ export async function resourceWatchProcess(namespace: string) {
         }
 
         await Promise.all(
-            response.items.map(
-                async resourceItem => await keycloakManagerService.createOrUpdate(
-                    resourceItem.spec, resourceItem.metadata.namespace
-                )
-            ),
+            response.items
+                .filter(c => ignoredClientIDs.indexOf(c.clientId) === -1)
+                .map(async resourceItem => await clientCreateOrUpdate(resourceItem)),
         );
 
         const watchRequest = new WatchRequestProcessor();
@@ -76,30 +104,44 @@ export async function resourceWatchProcess(namespace: string) {
             resourceUrl,
             <IWatchHandlers>{
                 gone: async () => {
+                    logger.info(`Gone`);
+
                     setTimeout(() => resourceWatchProcess(namespace), 1000);
                 },
 
                 added: async (obj: IKeycloakClientResource) => {
-                    await keycloakManagerService.createOrUpdate(obj.spec, obj.metadata.namespace);
+                    logger.info(`Added abstraction ${obj.metadata.name}`);
+
+                    return await clientCreateOrUpdate(obj, true);
                 },
 
                 modified: async (obj: IKeycloakClientResource) => {
-                    await keycloakManagerService.createOrUpdate(obj.spec, obj.metadata.namespace);
+                    logger.info(`Modified abstraction ${obj.metadata.name}`);
+
+                    return await clientCreateOrUpdate(obj, true);
                 },
 
                 deleted: async (obj: IKeycloakClientResource) => {
+                    logger.info(`Deleted abstraction ${obj.metadata.name}`);
+
                     await keycloakManagerService.remove(obj.spec);
                 },
             },
             response.resourceVersion,
         );
     } catch (e) {
+        logger.error(e.message);
+
         if (e instanceof AuthException) {
-            console.error(e);
-            process.exit(1);
+            logger.error('Keycloak auth failed');
         }
 
-        logger.error(e.message);
-        setTimeout(() => resourceWatchProcess(namespace), 1000);
+        if (e instanceof ClientException) {
+            ignoredClientIDs.push(e.clientId);
+            logger.error(`client "${e.clientId}" added to ignoring list`);
+            setTimeout(() => resourceWatchProcess(namespace), 1000);
+        } else {
+            process.exit(1);
+        }
     }
 }
