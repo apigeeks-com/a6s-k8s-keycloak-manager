@@ -171,6 +171,8 @@ export class ClientService {
         ...clientOptions
     }: IKeycloakClientResourceSpec, namespace: string) {
         this.logger.debug(`Create or update client: ${clientOptions.clientId}`);
+
+        await this.keycloakAdmin.auth();
         const client = await this.findOne(clientOptions.clientId);
 
         if (client) {
