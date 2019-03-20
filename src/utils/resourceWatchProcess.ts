@@ -11,18 +11,18 @@ const keycloakManagerService = Container.get(ClientService);
 const keycloakAdminService = Container.get(KeycloakAdminService);
 const logger = getLogger('watch');
 
-const ignoringClients: string[] = [];
+const ignoredClientIDs: string[] = [];
 
 function clearIgnoreClient(clientId: string) {
-    const index = ignoringClients.indexOf(clientId);
+    const index = ignoredClientIDs.indexOf(clientId);
 
     if (index > -1) {
-        ignoringClients.splice(index, 1);
+        ignoredClientIDs.splice(index, 1);
     }
 }
 
-async function clientCreateOrUpdate(obj: IKeycloakClientResource, isClearIgnoring = false) {
-    if (isClearIgnoring) {
+async function clientCreateOrUpdate(obj: IKeycloakClientResource, force = false) {
+    if (force) {
         clearIgnoreClient(obj.spec.clientId);
     }
 
@@ -94,7 +94,7 @@ export async function resourceWatchProcess(namespace: string) {
 
         await Promise.all(
             response.items
-                .filter(c => ignoringClients.indexOf(c.clientId) === -1)
+                .filter(c => ignoredClientIDs.indexOf(c.clientId) === -1)
                 .map(async resourceItem => await clientCreateOrUpdate(resourceItem)),
         );
 
@@ -137,7 +137,7 @@ export async function resourceWatchProcess(namespace: string) {
         }
 
         if (e instanceof ClientException) {
-            ignoringClients.push(e.clientId);
+            ignoredClientIDs.push(e.clientId);
             logger.error(`client "${e.clientId}" added to ignoring list`);
             setTimeout(() => resourceWatchProcess(namespace), 1000);
         } else {
