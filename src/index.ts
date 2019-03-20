@@ -3,6 +3,7 @@ import * as axios from 'axios';
 import * as log4js from 'log4js';
 import { resourceWatchProcess } from './utils/resourceWatchProcess';
 import { config } from './utils/config';
+import { HttpException } from './exception';
 
 log4js.configure(config.get('log4js'));
 
@@ -11,7 +12,7 @@ axios.default.interceptors.response.use(
     (error: any) => {
         console.log(error.response); // tslint:disable-line
 
-        return Promise.reject(error);
+        return Promise.reject(new HttpException(error.message));
     },
 );
 
