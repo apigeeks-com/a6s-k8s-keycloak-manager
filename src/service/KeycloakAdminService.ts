@@ -1,7 +1,7 @@
 import { Service } from 'typedi';
 import { config } from '../utils/config';
 import { AuthException } from '../exception';
-import { KeycloakClient } from '../client';
+import { KeycloakClient } from '../KeycloakClient';
 import { InjectLogger } from '../decorator';
 import { Logger } from 'log4js';
 
