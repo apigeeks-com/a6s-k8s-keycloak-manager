@@ -14,7 +14,7 @@ const logger = getLogger('watch');
 
 export enum WatcherEvent {
     LIST = 'list',
-    ADDED = 'ADDED',
+    ADDED = 'added',
     GONE = 'gone',
     MODIFIED = 'modified',
     DELETED = 'deleted',
