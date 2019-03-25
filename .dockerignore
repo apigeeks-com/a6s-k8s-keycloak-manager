@@ -2,8 +2,11 @@
 
 !src/
 !helm/
+!test/
 !config/
 !package.json
 !yarn.lock
 !tsconfig.json
 !docker-run-tests.sh
+!.mocharc.yml
+!.nycrc
