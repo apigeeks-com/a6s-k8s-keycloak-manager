@@ -23,7 +23,7 @@ export class UsersService {
 
     async create({ password, ...user }: IKeycloakUser) {
         this.logger.debug(`Create user: \n${prettyjson.render(user)}`);
-        await this.keycloakAdmin.api.users.create({...user, realm: config.get('keycloak.realm')});
+        await this.keycloakAdmin.api.users.create({ ...user, realm: config.get('keycloak.realm') });
 
         this.logger.debug('Set user password');
 
@@ -71,7 +71,7 @@ export class UsersService {
 
             // Append to group
             if (userFound && user.groups && Array.isArray(user.groups)) {
-                const groups = await this.keycloakAdmin.api.groups.find({realm: config.get('keycloak.realm')});
+                const groups = await this.keycloakAdmin.api.groups.find({ realm: config.get('keycloak.realm') });
 
                 await Promise.all(
                     user.groups.map(async groupName => {
@@ -130,7 +130,7 @@ export class UsersService {
                     await this.keycloakAdmin.api.users.addRealmRoleMappings({
                         realm: config.get('keycloak.realm'),
                         id: (userFound as any).id,
-                        roles: <RoleMappingPayload[]>appendRoles
+                        roles: <RoleMappingPayload[]>appendRoles,
                     });
                 }
             }
