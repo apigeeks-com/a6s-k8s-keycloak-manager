@@ -1,7 +1,9 @@
 keycloak:
-  server_url: https://keycloak:8080/auth
+  server_url: http://localhost:30800/auth
   masterRealm: master
-  realm: realm-name
+  realm: master
+  clientAttributes:
+    foo: boo
   auth:
     username: 'admin'
     password: 'admin'
@@ -21,8 +23,6 @@ log4js:
 
 k8s:
   namespaces:
-    - master
-    - lab
     - default
   resource:
     name: keycloakclients
