@@ -6,7 +6,7 @@ import { BaseRoleService } from './BaseRoleService';
 @Service()
 export class RealmRoleService extends BaseRoleService {
     protected async listRoles() {
-        return await this.keycloakAdmin.api.roles.find(({ realm: config.get('keycloak.realm') } as any));
+        return await this.keycloakAdmin.api.roles.find({ realm: config.get('keycloak.realm') } as any);
     }
 
     protected async create(role: RoleRepresentation, clientId: string) {
@@ -22,9 +22,9 @@ export class RealmRoleService extends BaseRoleService {
         await this.keycloakAdmin.api.roles.updateByName(
             {
                 name: (role as any).name,
-                realm: config.get('keycloak.realm')
+                realm: config.get('keycloak.realm'),
             },
-            role
+            role,
         );
 
         await this.addComposites(clientId, role);

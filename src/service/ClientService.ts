@@ -50,28 +50,35 @@ export class ClientService {
     @InjectLogger('services/ClientService')
     private logger!: Logger;
 
-    async create({
-        clientRoles,
-        realmRoleMappers,
-        clientRoleMappers,
-        associatedUsers,
-        associatedGroups,
-        clientScopes,
-        scopeRealmMappers,
-        realmRoles,
-        ...clientOptions
-    }: IKeycloakClientResourceSpec, namespace: string) {
+    async create(
+        {
+            clientRoles,
+            realmRoleMappers,
+            clientRoleMappers,
+            associatedUsers,
+            associatedGroups,
+            clientScopes,
+            scopeRealmMappers,
+            realmRoles,
+            ...clientOptions
+        }: IKeycloakClientResourceSpec,
+        namespace: string,
+    ) {
         await this.keycloakAdmin.auth();
         await this.processingBeforeCreate(realmRoles, clientScopes);
 
         if (config.has('keycloak.clientAttributes')) {
             clientOptions.attributes = !clientOptions.attributes ? {} : clientOptions.attributes;
-            clientOptions.attributes = {...clientOptions.attributes, ...config.get('keycloak.clientAttributes'), ...{namespace}};
+            clientOptions.attributes = {
+                ...clientOptions.attributes,
+                ...config.get('keycloak.clientAttributes'),
+                ...{ namespace },
+            };
         }
 
         this.logger.debug(`Create client: \n${prettyjson.render(clientOptions)}`);
 
-        await this.keycloakAdmin.api.clients.create({...clientOptions, realm: config.get('keycloak.realm')});
+        await this.keycloakAdmin.api.clients.create({ ...clientOptions, realm: config.get('keycloak.realm') });
 
         const client = await this.findOne(clientOptions.clientId);
 
@@ -88,17 +95,20 @@ export class ClientService {
         }
     }
 
-    async update({
-        clientRoles,
-        realmRoleMappers,
-        clientRoleMappers,
-        associatedUsers,
-        associatedGroups,
-        clientScopes,
-        scopeRealmMappers,
-        realmRoles,
-        ...clientOptions
-    }: IKeycloakClientResourceSpec, namespace: string) {
+    async update(
+        {
+            clientRoles,
+            realmRoleMappers,
+            clientRoleMappers,
+            associatedUsers,
+            associatedGroups,
+            clientScopes,
+            scopeRealmMappers,
+            realmRoles,
+            ...clientOptions
+        }: IKeycloakClientResourceSpec,
+        namespace: string,
+    ) {
         await this.keycloakAdmin.auth();
 
         const client = await this.findOne(clientOptions.clientId);
@@ -112,14 +122,18 @@ export class ClientService {
 
             if (config.has('keycloak.clientAttributes')) {
                 clientOptions.attributes = !clientOptions.attributes ? {} : clientOptions.attributes;
-                clientOptions.attributes = {...clientOptions.attributes, ...config.get('keycloak.clientAttributes'), ...{namespace}};
+                clientOptions.attributes = {
+                    ...clientOptions.attributes,
+                    ...config.get('keycloak.clientAttributes'),
+                    ...{ namespace },
+                };
             }
 
             this.logger.debug(`Update client: \n${prettyjson.render(clientOptions)}`);
 
             await this.keycloakAdmin.api.clients.update(
                 { id: client.id, realm: config.get('keycloak.realm') },
-                clientOptions
+                clientOptions,
             );
             await this.processingAfterCreate(
                 client,
@@ -159,46 +173,55 @@ export class ClientService {
         }
     }
 
-    async createOrUpdate({
-        clientRoles,
-        realmRoleMappers,
-        clientRoleMappers,
-        associatedUsers,
-        associatedGroups,
-        clientScopes,
-        scopeRealmMappers,
-        realmRoles,
-        ...clientOptions
-    }: IKeycloakClientResourceSpec, namespace: string) {
+    async createOrUpdate(
+        {
+            clientRoles,
+            realmRoleMappers,
+            clientRoleMappers,
+            associatedUsers,
+            associatedGroups,
+            clientScopes,
+            scopeRealmMappers,
+            realmRoles,
+            ...clientOptions
+        }: IKeycloakClientResourceSpec,
+        namespace: string,
+    ) {
         this.logger.debug(`Create or update client: ${clientOptions.clientId}`);
 
         await this.keycloakAdmin.auth();
         const client = await this.findOne(clientOptions.clientId);
 
         if (client) {
-            await this.update({
-                ...clientOptions,
-                clientRoles,
-                realmRoleMappers,
-                clientRoleMappers,
-                associatedUsers,
-                associatedGroups,
-                clientScopes,
-                scopeRealmMappers,
-                realmRoles,
-            }, namespace);
+            await this.update(
+                {
+                    ...clientOptions,
+                    clientRoles,
+                    realmRoleMappers,
+                    clientRoleMappers,
+                    associatedUsers,
+                    associatedGroups,
+                    clientScopes,
+                    scopeRealmMappers,
+                    realmRoles,
+                },
+                namespace,
+            );
         } else {
-            await this.create({
-                ...clientOptions,
-                clientRoles,
-                realmRoleMappers,
-                clientRoleMappers,
-                associatedUsers,
-                associatedGroups,
-                clientScopes,
-                scopeRealmMappers,
-                realmRoles,
-            }, namespace);
+            await this.create(
+                {
+                    ...clientOptions,
+                    clientRoles,
+                    realmRoleMappers,
+                    clientRoleMappers,
+                    associatedUsers,
+                    associatedGroups,
+                    clientScopes,
+                    scopeRealmMappers,
+                    realmRoles,
+                },
+                namespace,
+            );
         }
     }
 

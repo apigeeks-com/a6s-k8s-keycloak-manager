@@ -50,7 +50,7 @@ export class RolesService {
 
         const listRoles: RoleRepresentation[] = await this.keycloakAdmin.api.clients.listRoles({
             id: (client as any).id,
-            realm: config.get('keycloak.realm')
+            realm: config.get('keycloak.realm'),
         });
 
         this.logger.debug(`Mapping roles \n: ${roles}`);

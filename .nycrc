@@ -1,0 +1,19 @@
+{
+  "include": [
+    "src/**/*.{js,ts}"
+  ],
+  "exclude": [
+    "**/node_modules/**",
+    "**/I[A-Z]*.ts",
+    "**/*Exception.ts"
+  ],
+  "extension": [
+    ".js",
+    ".ts"
+  ],
+  "require": [
+    "ts-node/register"
+  ],
+  "reporter": ["html", "text"],
+  "per-file": true
+}

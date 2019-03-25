@@ -25,7 +25,7 @@ export class ClientRoleMappersService {
 
         const serviceAccount = (await this.keycloakAdmin.api.clients.getServiceAccountUser({
             id: client.id,
-            realm: config.get('keycloak.realm')
+            realm: config.get('keycloak.realm'),
         })) as UserRepresentation & { id: string };
 
         if (!serviceAccount) {
@@ -36,7 +36,7 @@ export class ClientRoleMappersService {
             roles.map(async role => {
                 const listRoles: RoleRepresentation[] = await this.keycloakAdmin.api.clients.listRoles({
                     id: (client as any).id,
-                    realm: config.get('keycloak.realm')
+                    realm: config.get('keycloak.realm'),
                 });
                 const foundRole = listRoles.filter(r => r.name === role);
 
@@ -45,7 +45,7 @@ export class ClientRoleMappersService {
                         id: serviceAccount.id,
                         clientUniqueId: (client as any).id,
                         roles: foundRole as any,
-                        realm: config.get('keycloak.realm')
+                        realm: config.get('keycloak.realm'),
                     });
                 }
 

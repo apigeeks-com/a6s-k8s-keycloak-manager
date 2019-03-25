@@ -23,7 +23,7 @@ export class GroupService {
 
     async create(group: GroupRepresentation) {
         this.logger.debug(`Create group: \n${prettyjson.render(group)}`);
-        await this.keycloakAdmin.api.groups.create({...group, realm: config.get('keycloak.realm')});
+        await this.keycloakAdmin.api.groups.create({ ...group, realm: config.get('keycloak.realm') });
     }
 
     async update(id: string, group: GroupRepresentation) {
@@ -67,7 +67,7 @@ export class GroupService {
                                 id: foundGroup.id,
                                 clientUniqueId: (client as any).id,
                                 roles: <RoleMappingPayload[]>appendRoles,
-                                realm: config.get('keycloak.realm')
+                                realm: config.get('keycloak.realm'),
                             });
                         }
                     }),
@@ -81,7 +81,7 @@ export class GroupService {
     private async findOne(name: string) {
         this.logger.debug(`Find group by name: ${name}`);
 
-        const list = await this.keycloakAdmin.api.groups.find({realm: config.get('keycloak.realm')});
+        const list = await this.keycloakAdmin.api.groups.find({ realm: config.get('keycloak.realm') });
 
         if (list) {
             const group = list.find(g => g.name === name);
