@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import * as axios from 'axios';
 import * as log4js from 'log4js';
-import { resourceWatchProcess } from './utils/resourceWatchProcess';
+import { ResourceWatcher } from './ResourceWatcher';
 import { config } from './utils/config';
 import { HttpException } from './exception';
 
@@ -20,8 +20,9 @@ const namespaces: string[] = config.get('k8s.namespaces');
 
 namespaces.forEach(async namespace => {
     console.log(`namespace: ${namespace}; name: ${config.get('k8s.resource.name')}`); // tslint:disable-line
+    const watcher = new ResourceWatcher(namespace);
 
-    resourceWatchProcess(namespace).then(() => {
+    watcher.process().then(() => {
         console.log(`Watching: ${namespace}`); // tslint:disable-line
     });
 });
