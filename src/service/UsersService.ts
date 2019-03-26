@@ -43,17 +43,6 @@ export class UsersService {
     async update(id: string, { password, ...user }: IKeycloakUser) {
         this.logger.debug(`Update user: \n${prettyjson.render(user)}`);
         await this.keycloakAdmin.api.users.update({ id, realm: config.get('keycloak.realm') }, user);
-
-        this.logger.debug('Update user password');
-        await this.keycloakAdmin.api.users.resetPassword({
-            id,
-            realm: config.get('keycloak.realm'),
-            credential: {
-                temporary: false,
-                type: 'password',
-                value: password,
-            },
-        });
     }
 
     async updateOrCreate(associatedUsers: IKeycloakUser[]) {
