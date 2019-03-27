@@ -12,30 +12,45 @@ cd a6s-k8s-keycloak-manager
 helm install --name keycloak-manager ./helm/keycloak-manager
 ```
 
-## Sample
+## "KeycloakClient" Resource Format
+
 ```yaml
 apiVersion: "apigeeks.com/v1"
 kind: KeycloakClient
 metadata:
   name: client-name
 spec:
-  # [required] clientId
-  # [optional] additional keycloak properties and entetises
+  # [required] 
+  clientId: some-client
+  # ... other client specific fields (https://www.keycloak.org/docs-api/5.0/rest-api/index.html#_clientrepresentation)
+  
+  # [optional] array of realm level roles (https://www.keycloak.org/docs-api/5.0/rest-api/index.html#_roles_resource)
+  realmRoles: []
+  
+  # [optional] array of client level roles (https://www.keycloak.org/docs-api/5.0/rest-api/index.html#_roles_resource)
+  clientRoles: [] 
+
+  # [optional] array of realm level role mappers (https://www.keycloak.org/docs-api/5.0/rest-api/index.html#_role_mapper_resource)
+  realmRoleMappers: []
+
+  # [optional] array of client roles mappers (https://www.keycloak.org/docs-api/5.0/rest-api/index.html#_role_mapper_resource)
+  clientRoleMappers:  []
+
+  # [optional] array of Keycloak groups (https://www.keycloak.org/docs-api/5.0/rest-api/index.html#_groups_resource)
+  associatedGroups: []
+  
+  # [optional] array of Keycloak users (https://www.keycloak.org/docs-api/5.0/rest-api/index.html#_users_resource)
+  associatedUsers: []
+  
+  # [optional] array of client scopes (https://www.keycloak.org/docs-api/5.0/rest-api/index.html#_client_scopes_resource)
+  clientScopes: []
+  
+  # [optional] array of realm level scopes (https://www.keycloak.org/docs-api/5.0/rest-api/index.html#_scope_mappings_resource)
+  scopeRealmMappers: []
 ```
 
-* spec:
-  * clientId: client_1
-  * ...rest: Keycloak [Client](https://www.keycloak.org/docs-api/5.0/rest-api/index.html#_clientrepresentation) fields
-  * realmRoles:         custom field, [] array of [Realm-level roles](https://www.keycloak.org/docs-api/5.0/rest-api/index.html#_roles_resource)
-  * clientRoles:        custom field, [] array of [Client roles](https://www.keycloak.org/docs-api/5.0/rest-api/index.html#_roles_resource)
-  * realmRoleMappers:   custom field, [] array of [Realm-level roles mappers](https://www.keycloak.org/docs-api/5.0/rest-api/index.html#_role_mapper_resource)
-  * clientRoleMappers:  custom field, [] array of [Client roles mappers](https://www.keycloak.org/docs-api/5.0/rest-api/index.html#_role_mapper_resource)
-  * associatedGroups:   custom field, [] array of Keycloak [Groups](https://www.keycloak.org/docs-api/5.0/rest-api/index.html#_groups_resource)
-  * associatedUsers:    custom field, [] array of Keycloak [Users](https://www.keycloak.org/docs-api/5.0/rest-api/index.html#_users_resource)
-  * clientScopes:       custom field, [] array of [Client scopes](https://www.keycloak.org/docs-api/5.0/rest-api/index.html#_client_scopes_resource)
-  * scopeRealmMappers:  custom field, [] array of [Realm-level scopes](https://www.keycloak.org/docs-api/5.0/rest-api/index.html#_scope_mappings_resource)
+## Example
 
-## Usage
 ```yaml
 apiVersion: "apigeeks.com/v1"
 kind: KeycloakClient
