@@ -2,15 +2,55 @@
 
 Keycloak management service based on K8s custom resource definitions
 
-## Install
+## Aim
+  Setup all necessary Keycloak entities in scope of k8s applications deployment configuration.
 
+## Install
 ```bash
 git clone https://github.com/apigeeks-com/a6s-k8s-keycloak-manager.git
 cd a6s-k8s-keycloak-manager
 helm install --name keycloak-manager ./helm/keycloak-manager
 ```
 
-## Usage
+## "KeycloakClient" Resource Format
+
+```yaml
+apiVersion: "apigeeks.com/v1"
+kind: KeycloakClient
+metadata:
+  name: client-name
+spec:
+  # [required] 
+  clientId: some-client
+  # ... other client specific fields (https://www.keycloak.org/docs-api/5.0/rest-api/index.html#_clientrepresentation)
+  
+  # [optional] array of realm level roles (https://www.keycloak.org/docs-api/5.0/rest-api/index.html#_roles_resource)
+  realmRoles: []
+  
+  # [optional] array of client level roles (https://www.keycloak.org/docs-api/5.0/rest-api/index.html#_roles_resource)
+  clientRoles: [] 
+
+  # [optional] array of realm level role mappers (https://www.keycloak.org/docs-api/5.0/rest-api/index.html#_role_mapper_resource)
+  realmRoleMappers: []
+
+  # [optional] array of client roles mappers (https://www.keycloak.org/docs-api/5.0/rest-api/index.html#_role_mapper_resource)
+  clientRoleMappers:  []
+
+  # [optional] array of Keycloak groups (https://www.keycloak.org/docs-api/5.0/rest-api/index.html#_groups_resource)
+  associatedGroups: []
+  
+  # [optional] array of Keycloak users (https://www.keycloak.org/docs-api/5.0/rest-api/index.html#_users_resource)
+  associatedUsers: []
+  
+  # [optional] array of client scopes (https://www.keycloak.org/docs-api/5.0/rest-api/index.html#_client_scopes_resource)
+  clientScopes: []
+  
+  # [optional] array of realm level scopes (https://www.keycloak.org/docs-api/5.0/rest-api/index.html#_scope_mappings_resource)
+  scopeRealmMappers: []
+```
+
+## Example
+
 ```yaml
 apiVersion: "apigeeks.com/v1"
 kind: KeycloakClient
