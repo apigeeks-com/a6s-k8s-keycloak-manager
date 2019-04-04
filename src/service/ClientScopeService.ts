@@ -2,50 +2,47 @@ import * as prettyjson from 'prettyjson';
 import { Inject, Service } from 'typedi';
 import { Logger } from 'log4js';
 import { InjectLogger } from '../decorator';
-import { KeycloakAdminService } from './KeycloakAdminService';
 import { IKeycloakScope } from '../interface';
 import { RolesService } from './RolesService';
+import { KeycloakClient } from '../KeycloakClient';
 
 @Service()
 export class ClientScopeService {
-    @Inject()
-    private keycloakAdmin!: KeycloakAdminService;
-
     @Inject()
     private rolesService!: RolesService;
 
     @InjectLogger('services/ClientScopeService')
     private logger!: Logger;
 
-    async create(scope: IKeycloakScope) {
+    async create(keycloakClient: KeycloakClient, scope: IKeycloakScope) {
         this.logger.debug(`Create client scope: \n${prettyjson.render(scope)}`);
-        await this.keycloakAdmin.api.clientScope.create(scope);
+        await keycloakClient.clientScope.create(scope);
     }
 
-    async update(id: string, scope: IKeycloakScope) {
+    async update(keycloakClient: KeycloakClient, id: string, scope: IKeycloakScope) {
         this.logger.debug(`Update group: \n${prettyjson.render(scope)}`);
-        await this.keycloakAdmin.api.clientScope.update({ id }, scope);
+        await keycloakClient.clientScope.update({ id }, scope);
     }
 
-    async updateOrCreate(clientScopes: IKeycloakScope[]) {
+    async updateOrCreate(keycloakClient: KeycloakClient, clientScopes: IKeycloakScope[]) {
         this.logger.debug(`Create or update client scopes: \n${prettyjson.render(clientScopes)}`);
 
         await Promise.all(
             clientScopes.map(async scope => {
-                let foundClientScope: any = await this.findOne((scope as any).name);
+                let foundClientScope: any = await this.findOne(keycloakClient, (scope as any).name);
 
                 if (foundClientScope) {
-                    await this.update(foundClientScope.id, scope);
+                    await this.update(keycloakClient, foundClientScope.id, scope);
                 } else {
-                    await this.create(scope);
-                    foundClientScope = await this.findOne((scope as any).name);
+                    await this.create(keycloakClient, scope);
+                    foundClientScope = await this.findOne(keycloakClient, (scope as any).name);
                 }
 
                 if (foundClientScope && scope.realmRoles) {
-                    const roles = await this.rolesService.findRealmRoles(scope.realmRoles);
+                    const roles = await this.rolesService.findRealmRoles(keycloakClient, scope.realmRoles);
 
                     if (roles.length) {
-                        await this.keycloakAdmin.api.clientScope.realmRoleMappings({
+                        await keycloakClient.clientScope.realmRoleMappings({
                             id: foundClientScope.id,
                             roles,
                         });
@@ -55,10 +52,10 @@ export class ClientScopeService {
         );
     }
 
-    private async findOne(name: string) {
+    private async findOne(keycloakClient: KeycloakClient, name: string) {
         this.logger.debug(`Find client scope by name: ${name}`);
 
-        const list = await this.keycloakAdmin.api.clientScope.find();
+        const list = await keycloakClient.clientScope.find();
 
         if (list) {
             const scope = list.find(g => g.name === name);

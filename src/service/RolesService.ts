@@ -1,23 +1,20 @@
 import * as prettyjson from 'prettyjson';
 import { InjectLogger } from '../decorator';
 import { Inject, Service } from 'typedi';
-import { KeycloakAdminService } from './KeycloakAdminService';
 import { Logger } from 'log4js';
 import RoleRepresentation from 'keycloak-admin/lib/defs/roleRepresentation';
 import ClientRepresentation from 'keycloak-admin/lib/defs/clientRepresentation';
 import { config } from '../utils/config';
+import { KeycloakClient } from '../KeycloakClient';
 
 @Service()
 export class RolesService {
-    @Inject()
-    private keycloakAdmin!: KeycloakAdminService;
-
     @InjectLogger('services/RolesService')
     private logger!: Logger;
 
-    async findRealmRoles(roles?: string[]) {
+    async findRealmRoles(keycloakClient: KeycloakClient, roles?: string[]) {
         if (roles && Array.isArray(roles) && roles.length) {
-            const listRoles: RoleRepresentation[] = await this.keycloakAdmin.api.roles.find();
+            const listRoles: RoleRepresentation[] = await keycloakClient.roles.find();
 
             this.logger.debug(`Mapping roles \n: ${roles}`);
             this.logger.debug(`list client roles: ${prettyjson.render(listRoles)}`);
@@ -45,10 +42,10 @@ export class RolesService {
         return [];
     }
 
-    async findClientRoles(client: ClientRepresentation | any, roles: string[]) {
+    async findClientRoles(keycloakClient: KeycloakClient, client: ClientRepresentation | any, roles: string[]) {
         this.logger.debug(`Mappings roles for client: ${client.clientId}`);
 
-        const listRoles: RoleRepresentation[] = await this.keycloakAdmin.api.clients.listRoles({
+        const listRoles: RoleRepresentation[] = await keycloakClient.clients.listRoles({
             id: (client as any).id,
             realm: config.get('keycloak.realm'),
         });
