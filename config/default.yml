@@ -1,9 +1,15 @@
 keycloak:
   server_url: http://localhost:30800/auth
+  
   masterRealm: master
   realm: master
-  clientAttributes:
-    foo: boo
+  
+  # Key/value pairs of all custom client attributes.
+  # This attributes will be added to all created clients and will be used to load from Keycloak
+  # upon merging - upon start keycloak manager will load all resources and compare them with clients 
+  # registered on Keycloak. Only clients with given attributes will be used for merging.
+  clientAttributes: {}    
+  
   auth:
     username: 'admin'
     password: 'admin'
