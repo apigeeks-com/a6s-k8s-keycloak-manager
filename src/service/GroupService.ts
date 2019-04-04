@@ -74,7 +74,6 @@ export class GroupService {
                 );
             }
 
-            // TODO: realm roles mapping
             if (foundGroup && group.realmRoles) {
                 this.logger.debug(`Realm role mappings for group: ${group.name}`);
                 const appendRoles = await this.rolesService.findRealmRoles(group.realmRoles);
