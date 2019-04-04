@@ -172,32 +172,4 @@ describe('KeycloakManagerTestSuite', function() {
             .to.be.an('array')
             .that.does.include('foo');
     });
-
-    it('Check group with associated realm roles', async () => {
-        const createPromiseEvent = new Promise((resolve, reject) => {
-            watcher.on(WatcherEvent.ADDED, resolve);
-            watcher.on(WatcherEvent.ERROR, reject);
-        });
-
-        await promiseExec(`kubectl apply -f ${__dirname}/assets/client-create.yml`);
-        await createPromiseEvent;
-        await keycloakAdminService.auth();
-
-        const groups = await keycloakAdminService.api.groups.find({
-            realm: config.get('keycloak.realm'),
-        });
-
-        const group = groups.find(g => g.name === 'client-group1');
-
-        const groupRealmRoles = await keycloakAdminService.api.groups.listRealmRoleMappings({
-            id: (group as any).id,
-            realm: config.get('keycloak.realm'),
-        });
-
-        const roles = groupRealmRoles
-            .filter(c => ['realm-role1', 'realm-role2'].indexOf((c as any).name) !== -1)
-            .map(c => c.name);
-
-        expect(roles).to.have.members(['realm-role1']);
-    });
 });
