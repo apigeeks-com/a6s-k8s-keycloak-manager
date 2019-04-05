@@ -73,11 +73,11 @@ export class GroupService {
 
             if (foundGroup && group.realmRoles) {
                 this.logger.debug(`Realm role mappings for group: ${group.name}`);
-                const appendRoles = await this.rolesService.findRealmRoles(group.realmRoles);
+                const appendRoles = await this.rolesService.findRealmRoles(keycloakClient, group.realmRoles);
 
                 if (appendRoles) {
                     // TODO: It may be necessary to remove irrelevant roles.
-                    await this.keycloakAdmin.api.groups.addRealmRoleMappings({
+                    await keycloakClient.groups.addRealmRoleMappings({
                         id: foundGroup.id,
                         roles: <RoleMappingPayload[]>appendRoles,
                         realm: config.get('keycloak.realm'),
