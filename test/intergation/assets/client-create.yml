@@ -93,7 +93,8 @@ spec:
   - name: client-group1
     path: "/client-group1"
     attributes: {}
-    realmRoles: []
+    realmRoles:
+      - realm-role1
     clientRoles:
       test-client:
         - client-role1
