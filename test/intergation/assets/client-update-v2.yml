@@ -1,0 +1,11 @@
+apiVersion: "apigeeks.com/v2"
+kind: KeycloakClient
+metadata:
+  name: test-client
+spec:
+  client:
+    clientId: test-client
+    surrogateAuthRequired: false
+    enabled: false
+    clientAuthenticatorType: client-secret
+    secret: a9609ee1-675a-4516-8b22-49a0c784523a

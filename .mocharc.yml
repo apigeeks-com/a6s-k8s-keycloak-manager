@@ -4,5 +4,4 @@ require:
   - source-map-support/register
   - ts-node/register
 spec:
- - test/**/*.ts
- - test/*.ts
+ - test/**/*.ts 

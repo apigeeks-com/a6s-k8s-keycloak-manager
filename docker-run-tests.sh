@@ -4,7 +4,7 @@
 bash test/scripts/k8s_init.sh
 
 # register custom resource definiton
-kubectl create -f /usr/app/test/intergation/assets/resourcedefinition.yaml
+kubectl create -f /usr/app/test/intergation/assets/resourcedefinition-v2.yaml
 
 # hack for waiting tiller
 #sleep 30

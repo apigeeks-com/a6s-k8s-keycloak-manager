@@ -7,6 +7,7 @@ import { ResourceWatcher, WatcherEvent } from '../../src/ResourceWatcher';
 import { config } from '../../src/utils/config';
 import { HttpException } from '../../src/exception';
 import { KeycloakAdminClientProcessor } from '../../src/processors/KeycloakAdminClientProcessor';
+import ClientRepresentation from 'keycloak-admin/lib/defs/clientRepresentation';
 
 axios.default.interceptors.response.use(
     (response: axios.AxiosResponse) => response,
@@ -46,7 +47,7 @@ describe('KeycloakManagerTestSuite', function() {
             watcher.on(WatcherEvent.ERROR, reject);
         });
 
-        await promiseExec(`kubectl apply -f ${__dirname}/assets/client-create.yml`);
+        await promiseExec(`kubectl apply -f ${__dirname}/assets/client-create-v2.yml`);
         await promiseEvent;
 
         const processor = new KeycloakAdminClientProcessor();
@@ -63,7 +64,7 @@ describe('KeycloakManagerTestSuite', function() {
             watcher.on(WatcherEvent.ERROR, reject);
         });
 
-        await promiseExec(`kubectl apply -f ${__dirname}/assets/client-create.yml`);
+        await promiseExec(`kubectl apply -f ${__dirname}/assets/client-create-v2.yml`);
         await createPromiseEvent;
 
         const updatePromiseEvent = new Promise((resolve, reject) => {
@@ -71,7 +72,7 @@ describe('KeycloakManagerTestSuite', function() {
             watcher.on(WatcherEvent.ERROR, reject);
         });
 
-        await promiseExec(`kubectl apply -f ${__dirname}/assets/client-update.yml`);
+        await promiseExec(`kubectl apply -f ${__dirname}/assets/client-update-v2.yml`);
         await updatePromiseEvent;
 
         const processor = new KeycloakAdminClientProcessor();
@@ -80,7 +81,7 @@ describe('KeycloakManagerTestSuite', function() {
 
         const client = clients.find(c => c.clientId === 'test-client');
 
-        assert.equal((client as any).enabled, false);
+        assert.equal((client as ClientRepresentation).enabled, false);
     });
 
     it('Deleted client', async () => {
@@ -89,7 +90,7 @@ describe('KeycloakManagerTestSuite', function() {
             watcher.on(WatcherEvent.ERROR, reject);
         });
 
-        await promiseExec(`kubectl apply -f ${__dirname}/assets/client-create.yml`);
+        await promiseExec(`kubectl apply -f ${__dirname}/assets/client-create-v2.yml`);
         await createPromiseEvent;
 
         const deletedPromiseEvent = new Promise((resolve, reject) => {
@@ -115,7 +116,7 @@ describe('KeycloakManagerTestSuite', function() {
             watcher.on(WatcherEvent.ERROR, reject);
         });
 
-        await promiseExec(`kubectl apply -f ${__dirname}/assets/client-create.yml`);
+        await promiseExec(`kubectl apply -f ${__dirname}/assets/client-create-v2.yml`);
         await createPromiseEvent;
 
         const processor = new KeycloakAdminClientProcessor();
@@ -135,7 +136,7 @@ describe('KeycloakManagerTestSuite', function() {
             watcher.on(WatcherEvent.ERROR, reject);
         });
 
-        await promiseExec(`kubectl apply -f ${__dirname}/assets/client-create.yml`);
+        await promiseExec(`kubectl apply -f ${__dirname}/assets/client-create-v2.yml`);
         await createPromiseEvent;
 
         const processor = new KeycloakAdminClientProcessor();
@@ -165,7 +166,7 @@ describe('KeycloakManagerTestSuite', function() {
             watcher.on(WatcherEvent.ERROR, reject);
         });
 
-        await promiseExec(`kubectl apply -f ${__dirname}/assets/client-create.yml`);
+        await promiseExec(`kubectl apply -f ${__dirname}/assets/client-create-v2.yml`);
         await createPromiseEvent;
 
         const processor = new KeycloakAdminClientProcessor();
@@ -183,7 +184,7 @@ describe('KeycloakManagerTestSuite', function() {
             watcher.on(WatcherEvent.ERROR, reject);
         });
 
-        await promiseExec(`kubectl apply -f ${__dirname}/assets/client-create.yml`);
+        await promiseExec(`kubectl apply -f ${__dirname}/assets/client-create-v2.yml`);
         await createPromiseEvent;
         const processor = new KeycloakAdminClientProcessor();
         const api = await processor.getAPI();

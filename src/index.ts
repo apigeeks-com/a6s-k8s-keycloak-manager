@@ -20,8 +20,7 @@ const namespaces: string[] = config.get('k8s.namespaces');
 
 namespaces.forEach(async namespace => {
     const watcher = new ResourceWatcher(namespace);
+    await watcher.start();
 
-    watcher.start().then(() => {
-        console.log(`Watching: ${namespace}`); // tslint:disable-line
-    });
+    console.log(`Watching: ${namespace}`); // tslint:disable-line
 });

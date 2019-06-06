@@ -4,7 +4,8 @@ import GroupRepresentation from 'keycloak-admin/lib/defs/groupRepresentation';
 import { IKeycloakUser } from './IKeycloakUser';
 import { IKeycloakScope } from './IKeycloakScope';
 
-export interface IKeycloakClientResourceSpec extends ClientRepresentation {
+export interface IKeycloakClientResourceSpec {
+    client: ClientRepresentation;
     associatedUsers?: IKeycloakUser[];
     associatedGroups?: GroupRepresentation[];
     realmRoles?: RoleRepresentation[];
@@ -13,5 +14,4 @@ export interface IKeycloakClientResourceSpec extends ClientRepresentation {
     scopeRealmMappers?: string[];
     realmRoleMappers?: string[];
     clientRoleMappers?: string[];
-    clientId: string;
 }

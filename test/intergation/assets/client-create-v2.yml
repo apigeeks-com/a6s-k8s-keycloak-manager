@@ -1,62 +1,63 @@
-apiVersion: "apigeeks.com/v1"
+apiVersion: "apigeeks.com/v2"
 kind: KeycloakClient
 metadata:
   name: test-client
 spec:
-  clientId: test-client
-  surrogateAuthRequired: false
-  enabled: true
-  clientAuthenticatorType: client-secret
-  secret: a9609ee1-675a-4516-8b22-49a0c7845e3a
-  redirectUris:
-    - "https://service.host.com/*"
-  webOrigins:
-    - service.host.com
-  notBefore: 0
-  bearerOnly: false
-  consentRequired: false
-  standardFlowEnabled: true
-  implicitFlowEnabled: false
-  directAccessGrantsEnabled: true
-  serviceAccountsEnabled: true
-  authorizationServicesEnabled: true
-  publicClient: false
-  frontchannelLogout: false
-  protocol: openid-connect
-  attributes:
-    saml.assertion.signature: 'false'
-    saml.force.post.binding: 'false'
-    saml.multivalued.roles: 'false'
-    saml.encrypt: 'false'
-    saml.server.signature: 'false'
-    saml.server.signature.keyinfo.ext: 'false'
-    exclude.session.state.from.auth.response: 'false'
-    saml_force_name_id_format: 'false'
-    saml.client.signature: 'false'
-    tls.client.certificate.bound.access.tokens: 'false'
-    saml.authnstatement: 'false'
-    display.on.consent.screen: 'false'
-    saml.onetimeuse.condition: 'false'
-  authenticationFlowBindingOverrides: {}
-  fullScopeAllowed: true
-  nodeReRegistrationTimeout: -1
+  client:
+    clientId: test-client
+    surrogateAuthRequired: false
+    enabled: true
+    clientAuthenticatorType: client-secret
+    secret: a9609ee1-675a-4516-8b22-49a0c7845e3a
+    redirectUris:
+      - "https://service.host.com/*"
+    webOrigins:
+      - service.host.com
+    notBefore: 0
+    bearerOnly: false
+    consentRequired: false
+    standardFlowEnabled: true
+    implicitFlowEnabled: false
+    directAccessGrantsEnabled: true
+    serviceAccountsEnabled: true
+    authorizationServicesEnabled: true
+    publicClient: false
+    frontchannelLogout: false
+    protocol: openid-connect
+    attributes:
+      saml.assertion.signature: 'false'
+      saml.force.post.binding: 'false'
+      saml.multivalued.roles: 'false'
+      saml.encrypt: 'false'
+      saml.server.signature: 'false'
+      saml.server.signature.keyinfo.ext: 'false'
+      exclude.session.state.from.auth.response: 'false'
+      saml_force_name_id_format: 'false'
+      saml.client.signature: 'false'
+      tls.client.certificate.bound.access.tokens: 'false'
+      saml.authnstatement: 'false'
+      display.on.consent.screen: 'false'
+      saml.onetimeuse.condition: 'false'
+    authenticationFlowBindingOverrides: {}
+    fullScopeAllowed: true
+    nodeReRegistrationTimeout: -1
 
-  protocolMappers:
-    - name: Client Host
-      protocol: openid-connect
-      protocolMapper: oidc-usersessionmodel-note-mapper
-      consentRequired: false
-      config:
-        user.session.note: clientHost
-        id.token.claim: 'true'
-        access.token.claim: 'true'
-        claim.name: clientHost
-        jsonType.label: String
-  defaultClientScopes:
-    - foo
+    protocolMappers:
+      - name: Client Host
+        protocol: openid-connect
+        protocolMapper: oidc-usersessionmodel-note-mapper
+        consentRequired: false
+        config:
+          user.session.note: clientHost
+          id.token.claim: 'true'
+          access.token.claim: 'true'
+          claim.name: clientHost
+          jsonType.label: String
+    defaultClientScopes:
+      - foo
 
-  optionalClientScopes:
-    - address
+    optionalClientScopes:
+      - address
 
   # Realm-level roles are a global namespace to define your roles.
   realmRoles:

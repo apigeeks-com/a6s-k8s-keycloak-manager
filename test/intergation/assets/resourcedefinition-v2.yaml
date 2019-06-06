@@ -7,7 +7,7 @@ spec:
   # group name to use for REST API: /apis/<group>/<version>
   group: apigeeks.com
   # list of versions supported by this CustomResourceDefinition
-  version: v1
+  version: v2
   # either Namespaced or Cluster
   scope: Namespaced
   names:

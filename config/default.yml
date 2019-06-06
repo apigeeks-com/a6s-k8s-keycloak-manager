@@ -31,6 +31,4 @@ log4js:
 k8s:
   namespaces:
     - default
-  resource:
-    name: keycloakclients
-    apiVersion: apigeeks.com/v1
+    
