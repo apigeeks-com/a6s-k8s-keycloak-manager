@@ -185,15 +185,16 @@ describe('KeycloakManagerTestSuite', function() {
 
         await promiseExec(`kubectl apply -f ${__dirname}/assets/client-create.yml`);
         await createPromiseEvent;
-        await keycloakAdminService.auth();
+        const processor = new KeycloakAdminClientProcessor();
+        const api = await processor.getAPI();
 
-        const groups = await keycloakAdminService.api.groups.find({
+        const groups = await api.groups.find({
             realm: config.get('keycloak.realm'),
         });
 
         const group = groups.find(g => g.name === 'client-group1');
 
-        const groupRealmRoles = await keycloakAdminService.api.groups.listRealmRoleMappings({
+        const groupRealmRoles = await api.groups.listRealmRoleMappings({
             id: (group as any).id,
             realm: config.get('keycloak.realm'),
         });
