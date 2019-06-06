@@ -1,16 +1,10 @@
-import { Service } from 'typedi';
 import { config } from '../utils/config';
 import { AuthException } from '../exception';
 import { KeycloakClient } from '../KeycloakClient';
-import { InjectLogger } from '../decorator';
-import { Logger } from 'log4js';
 
-@Service()
-export class KeycloakAdminService {
-    @InjectLogger('services/ClientService')
-    private logger!: Logger;
-
+export class KeycloakAdminClientProcessor {
     private readonly keyCloakAdminClient: KeycloakClient;
+    private authenticated = false;
 
     constructor() {
         this.keyCloakAdminClient = new KeycloakClient({});
@@ -20,19 +14,27 @@ export class KeycloakAdminService {
         });
     }
 
+    /**
+     * Authenticate client
+     */
     async auth() {
-        this.logger.debug('Keycloak authorization');
         try {
             this.keyCloakAdminClient.setConfig({ realmName: config.get('keycloak.masterRealm') });
             await this.keyCloakAdminClient.auth(config.get('keycloak.auth'));
             this.keyCloakAdminClient.setConfig({ realmName: config.get('keycloak.realm') });
+            this.authenticated = true;
         } catch (e) {
-            throw new AuthException(e.message);
+            throw new AuthException(e.message || 'Unable to authenticate. Unknown error ocurred.');
         }
     }
 
-    get api() {
-        this.keyCloakAdminClient.setConfig({ realmName: config.get('keycloak.realm') });
+    /**
+     * Get KeycloakClient interface
+     */
+    async getAPI(): Promise<KeycloakClient> {
+        if (!this.authenticated) {
+            await this.auth();
+        }
 
         return this.keyCloakAdminClient;
     }

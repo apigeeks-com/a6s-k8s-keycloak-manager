@@ -4,7 +4,6 @@ import { Logger } from 'log4js';
 import ClientRepresentation from 'keycloak-admin/lib/defs/clientRepresentation';
 import GroupRepresentation from 'keycloak-admin/lib/defs/groupRepresentation';
 import RoleRepresentation from 'keycloak-admin/lib/defs/roleRepresentation';
-import { KeycloakAdminService } from './KeycloakAdminService';
 import { ClientRoleService } from './ClientRoleService';
 import { ClientRoleMappersService } from './ClientRoleMappersService';
 import { RealmRoleMappersService } from './RealmRoleMappersService';
@@ -17,12 +16,10 @@ import { config } from '../utils/config';
 import { RolesService } from './RolesService';
 import { ProcessException } from '../exception';
 import { RealmRoleService } from './RealmRoleService';
+import { KeycloakClient } from '../KeycloakClient';
 
 @Service()
 export class ClientService {
-    @Inject()
-    private keycloakAdmin!: KeycloakAdminService;
-
     @Inject()
     private clientRoleService!: ClientRoleService;
 
@@ -50,7 +47,27 @@ export class ClientService {
     @InjectLogger('services/ClientService')
     private logger!: Logger;
 
+    generateClientAttributes(
+        namespace: string,
+        existingAttributes: { [key: string]: string },
+    ): { [key: string]: string } {
+        let clientAttributes: { [key: string]: string } = {
+            ...existingAttributes,
+            namespace: namespace, // TODO: move attribute name to config
+        };
+
+        if (config.has('keycloak.clientAttributes')) {
+            clientAttributes = {
+                ...clientAttributes,
+                ...config.get('keycloak.clientAttributes'),
+            };
+        }
+
+        return clientAttributes;
+    }
+
     async create(
+        keycloakClient: KeycloakClient,
         {
             clientRoles,
             realmRoleMappers,
@@ -64,26 +81,19 @@ export class ClientService {
         }: IKeycloakClientResourceSpec,
         namespace: string,
     ) {
-        await this.keycloakAdmin.auth();
-        await this.processingBeforeCreate(realmRoles, clientScopes);
+        await this.processingBeforeCreate(keycloakClient, realmRoles, clientScopes);
 
-        if (config.has('keycloak.clientAttributes')) {
-            clientOptions.attributes = !clientOptions.attributes ? {} : clientOptions.attributes;
-            clientOptions.attributes = {
-                ...clientOptions.attributes,
-                ...config.get('keycloak.clientAttributes'),
-                ...{ namespace },
-            };
-        }
+        clientOptions.attributes = this.generateClientAttributes(namespace, {});
 
         this.logger.debug(`Create client: \n${prettyjson.render(clientOptions)}`);
 
-        await this.keycloakAdmin.api.clients.create({ ...clientOptions, realm: config.get('keycloak.realm') });
+        await keycloakClient.clients.create({ ...clientOptions, realm: config.get('keycloak.realm') });
 
-        const client = await this.findOne(clientOptions.clientId);
+        const client = await this.findOne(keycloakClient, clientOptions.clientId);
 
         if (client) {
             await this.processingAfterCreate(
+                keycloakClient,
                 client,
                 clientRoles,
                 realmRoleMappers,
@@ -96,6 +106,7 @@ export class ClientService {
     }
 
     async update(
+        keycloakClient: KeycloakClient,
         {
             clientRoles,
             realmRoleMappers,
@@ -109,33 +120,22 @@ export class ClientService {
         }: IKeycloakClientResourceSpec,
         namespace: string,
     ) {
-        await this.keycloakAdmin.auth();
-
-        const client = await this.findOne(clientOptions.clientId);
+        const client = await this.findOne(keycloakClient, clientOptions.clientId);
 
         if (!client) {
             throw new ProcessException(`Client "${clientOptions.clientId}" not found`);
         }
 
         if (client && client.id) {
-            await this.processingBeforeCreate(realmRoles, clientScopes);
+            await this.processingBeforeCreate(keycloakClient, realmRoles, clientScopes);
 
-            if (config.has('keycloak.clientAttributes')) {
-                clientOptions.attributes = !clientOptions.attributes ? {} : clientOptions.attributes;
-                clientOptions.attributes = {
-                    ...clientOptions.attributes,
-                    ...config.get('keycloak.clientAttributes'),
-                    ...{ namespace },
-                };
-            }
+            clientOptions.attributes = this.generateClientAttributes(namespace, client.attributes || {});
 
             this.logger.debug(`Update client: \n${prettyjson.render(clientOptions)}`);
 
-            await this.keycloakAdmin.api.clients.update(
-                { id: client.id, realm: config.get('keycloak.realm') },
-                clientOptions,
-            );
+            await keycloakClient.clients.update({ id: client.id, realm: config.get('keycloak.realm') }, clientOptions);
             await this.processingAfterCreate(
+                keycloakClient,
                 client,
                 clientRoles,
                 realmRoleMappers,
@@ -147,20 +147,21 @@ export class ClientService {
         }
     }
 
-    async remove({
-        clientRoles,
-        realmRoleMappers,
-        clientRoleMappers,
-        associatedUsers,
-        associatedGroups,
-        clientScopes,
-        scopeRealmMappers,
-        realmRoles,
-        ...clientOptions
-    }: IKeycloakClientResourceSpec) {
-        await this.keycloakAdmin.auth();
-
-        const client = await this.findOne(clientOptions.clientId);
+    async remove(
+        keycloakClient: KeycloakClient,
+        {
+            clientRoles,
+            realmRoleMappers,
+            clientRoleMappers,
+            associatedUsers,
+            associatedGroups,
+            clientScopes,
+            scopeRealmMappers,
+            realmRoles,
+            ...clientOptions
+        }: IKeycloakClientResourceSpec,
+    ) {
+        const client = await this.findOne(keycloakClient, clientOptions.clientId);
 
         if (!client) {
             throw new ProcessException(`Client "${clientOptions.clientId}" not found`);
@@ -168,12 +169,13 @@ export class ClientService {
 
         if (client && client.id) {
             this.logger.debug(`Remove client: \n${prettyjson.render(clientOptions)}`);
-            await this.keycloakAdmin.api.clients.del({ id: client.id, realm: config.get('keycloak.realm') });
+            await keycloakClient.clients.del({ id: client.id, realm: config.get('keycloak.realm') });
             // TODO: need remove users and groups
         }
     }
 
     async createOrUpdate(
+        keycloakClient: KeycloakClient,
         {
             clientRoles,
             realmRoleMappers,
@@ -189,11 +191,11 @@ export class ClientService {
     ) {
         this.logger.debug(`Create or update client: ${clientOptions.clientId}`);
 
-        await this.keycloakAdmin.auth();
-        const client = await this.findOne(clientOptions.clientId);
+        const client = await this.findOne(keycloakClient, clientOptions.clientId);
 
         if (client) {
             await this.update(
+                keycloakClient,
                 {
                     ...clientOptions,
                     clientRoles,
@@ -209,6 +211,7 @@ export class ClientService {
             );
         } else {
             await this.create(
+                keycloakClient,
                 {
                     ...clientOptions,
                     clientRoles,
@@ -225,10 +228,10 @@ export class ClientService {
         }
     }
 
-    private async findOne(clientId: string) {
+    private async findOne(keycloakClient: KeycloakClient, clientId: string) {
         this.logger.debug(`Find client by id: ${clientId}`);
 
-        const clients = await this.keycloakAdmin.api.clients.find({
+        const clients = await keycloakClient.clients.find({
             clientId,
             realm: config.get('keycloak.realm'),
         });
@@ -242,17 +245,22 @@ export class ClientService {
         }
     }
 
-    private async processingBeforeCreate(realmRoles?: RoleRepresentation[], clientScopes?: IKeycloakScope[]) {
+    private async processingBeforeCreate(
+        keycloakClient: KeycloakClient,
+        realmRoles?: RoleRepresentation[],
+        clientScopes?: IKeycloakScope[],
+    ) {
         if (clientScopes) {
-            await this.clientScopesService.updateOrCreate(clientScopes);
+            await this.clientScopesService.updateOrCreate(keycloakClient, clientScopes);
         }
 
         if (realmRoles) {
-            await this.realmRoleService.updateOrCreate(realmRoles);
+            await this.realmRoleService.updateOrCreate(keycloakClient, realmRoles);
         }
     }
 
     private async processingAfterCreate(
+        keycloakClient: KeycloakClient,
         client: ClientRepresentation,
         clientRoles?: RoleRepresentation[],
         realmRoleMappers?: string[],
@@ -262,30 +270,30 @@ export class ClientService {
         scopeRealmMappers?: string[],
     ) {
         if (clientRoles) {
-            await this.clientRoleService.updateOrCreate(clientRoles, client);
+            await this.clientRoleService.updateOrCreate(keycloakClient, clientRoles, client);
         }
 
         if (realmRoleMappers) {
-            await this.realmRoleMappersService.mapping(realmRoleMappers, client);
+            await this.realmRoleMappersService.mapping(keycloakClient, realmRoleMappers, client);
         }
 
         if (clientRoleMappers) {
-            await this.clientRoleMappersService.mapping(clientRoleMappers, client);
+            await this.clientRoleMappersService.mapping(keycloakClient, clientRoleMappers, client);
         }
 
         if (associatedGroups) {
-            await this.groupService.updateOrCreate(associatedGroups);
+            await this.groupService.updateOrCreate(keycloakClient, associatedGroups);
         }
 
         if (associatedUsers) {
-            await this.usersService.updateOrCreate(associatedUsers);
+            await this.usersService.updateOrCreate(keycloakClient, associatedUsers);
         }
 
         if (scopeRealmMappers) {
-            const roles = await this.rolesService.findRealmRoles(scopeRealmMappers);
+            const roles = await this.rolesService.findRealmRoles(keycloakClient, scopeRealmMappers);
 
             if (roles.length) {
-                await this.keycloakAdmin.api.clientScopeMappings.realmRoleClientMappings({
+                await keycloakClient.clientScopeMappings.realmRoleClientMappings({
                     clientId: (client as any).id,
                     roles,
                 });

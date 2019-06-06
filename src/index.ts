@@ -19,10 +19,9 @@ axios.default.interceptors.response.use(
 const namespaces: string[] = config.get('k8s.namespaces');
 
 namespaces.forEach(async namespace => {
-    console.log(`namespace: ${namespace}; name: ${config.get('k8s.resource.name')}`); // tslint:disable-line
     const watcher = new ResourceWatcher(namespace);
 
-    watcher.process().then(() => {
+    watcher.start().then(() => {
         console.log(`Watching: ${namespace}`); // tslint:disable-line
     });
 });

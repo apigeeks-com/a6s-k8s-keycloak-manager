@@ -3,25 +3,21 @@ import { Logger } from 'log4js';
 import { Inject } from 'typedi';
 import RoleRepresentation, { RoleMappingPayload } from 'keycloak-admin/lib/defs/roleRepresentation';
 import ClientRepresentation from 'keycloak-admin/lib/defs/clientRepresentation';
-import { KeycloakAdminService } from './KeycloakAdminService';
 import { InjectLogger } from '../decorator';
 import { config } from '../utils/config';
 import { RolesService } from './RolesService';
 import { ProcessException } from '../exception';
+import { KeycloakClient } from '../KeycloakClient';
 
 export abstract class BaseRoleService {
-    @Inject()
-    protected keycloakAdmin!: KeycloakAdminService;
-
     @Inject()
     protected rolesService!: RolesService;
 
     @InjectLogger('services/RoleService')
     protected logger!: Logger;
 
-    async updateOrCreate(roles?: RoleRepresentation[], client?: ClientRepresentation) {
-        await this.keycloakAdmin.auth();
-        const existingRoles = await this.listRoles(client && client.id);
+    async updateOrCreate(keycloakClient: KeycloakClient, roles?: RoleRepresentation[], client?: ClientRepresentation) {
+        const existingRoles = await this.listRoles(keycloakClient, client && client.id);
         this.logger.debug(`Update or install roles`);
         this.logger.debug(`Exist roles: \n${prettyjson.render(existingRoles)}`);
 
@@ -35,19 +31,18 @@ export abstract class BaseRoleService {
                     this.logger.debug(existingRole ? `update role: ${role.name}` : `create role: ${role.name}`);
 
                     existingRole && existingRole.id && existingRole.name
-                        ? await this.update(role, client && (client as any).id)
-                        : await this.create(role, client && (client as any).id)
-                    ;
+                        ? await this.update(keycloakClient, role, client && (client as any).id)
+                        : await this.create(keycloakClient, role, client && (client as any).id);
                 }),
             );
         }
     }
 
-    protected async addComposites(clientId: string, role: RoleRepresentation) {
+    protected async addComposites(keycloakClient: KeycloakClient, clientId: string, role: RoleRepresentation) {
         if (role.composites && role.composites.client) {
             this.logger.debug(`composites clients: \n${prettyjson.render(role.composites.client)}`);
 
-            const clientRoles = await this.keycloakAdmin.api.clients.listRoles({
+            const clientRoles = await keycloakClient.clients.listRoles({
                 id: clientId,
                 realm: config.get('keycloak.realm'),
             });
@@ -55,7 +50,7 @@ export abstract class BaseRoleService {
 
             await Promise.all(
                 Object.entries(role.composites.client).map(async ([clientName, roles]) => {
-                    const clientList = await this.keycloakAdmin.api.clients.find({
+                    const clientList = await keycloakClient.clients.find({
                         clientId: clientName,
                         realm: config.get('keycloak.realm'),
                     });
@@ -65,11 +60,11 @@ export abstract class BaseRoleService {
                     }
 
                     const client: ClientRepresentation | any = clientList.pop();
-                    const appendRoles = await this.rolesService.findClientRoles(client, roles);
+                    const appendRoles = await this.rolesService.findClientRoles(keycloakClient, client, roles);
 
                     if (appendRoles) {
                         // TODO: It may be necessary to remove irrelevant roles.
-                        await this.keycloakAdmin.api.clientRoleComposite.create({
+                        await keycloakClient.clientRoleComposite.create({
                             id: (roleFound as any).id,
                             roles: <RoleMappingPayload[]>appendRoles,
                         });
@@ -79,9 +74,20 @@ export abstract class BaseRoleService {
         }
     }
 
-    protected abstract async listRoles(clientId?: string): Promise<RoleRepresentation[]>;
+    protected abstract async listRoles(
+        keycloakClient: KeycloakClient,
+        clientId?: string,
+    ): Promise<RoleRepresentation[]>;
 
-    protected abstract async create(role: RoleRepresentation, clientId: string): Promise<void>;
+    protected abstract async create(
+        keycloakClient: KeycloakClient,
+        role: RoleRepresentation,
+        clientId: string,
+    ): Promise<void>;
 
-    protected abstract async update(role: RoleRepresentation, clientId: string): Promise<void>;
+    protected abstract async update(
+        keycloakClient: KeycloakClient,
+        role: RoleRepresentation,
+        clientId: string,
+    ): Promise<void>;
 }

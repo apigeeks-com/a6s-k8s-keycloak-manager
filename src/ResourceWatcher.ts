@@ -1,21 +1,19 @@
-import { Container } from 'typedi';
-import { intersection, sum } from 'lodash';
 import { EventEmitter } from 'events';
 import { APIRequestProcessor, WatchRequestProcessor, IWatchHandlers } from '@fireblink/k8s-api-client';
-import { ClientService, KeycloakAdminService } from './service';
 import { IKeycloakClientResource } from './interface';
 import { getLogger } from 'log4js';
-import { AuthException, ClientException, HttpException } from './exception';
+import { HttpException } from './exception';
 import { config } from './utils/config';
+import { KeycloakAdminClientProcessor } from './processors/KeycloakAdminClientProcessor';
+import { KeycloakClient } from './KeycloakClient';
+import Container from 'typedi';
+import { ClientService } from './service';
 
-const keycloakManagerService = Container.get(ClientService);
-const keycloakAdminService = Container.get(KeycloakAdminService);
 const logger = getLogger('watch');
 
 export enum WatcherEvent {
     LIST = 'list',
     ADDED = 'added',
-    GONE = 'gone',
     MODIFIED = 'modified',
     DELETED = 'deleted',
     ERROR = 'error',
@@ -24,149 +22,138 @@ export enum WatcherEvent {
 }
 
 export class ResourceWatcher extends EventEmitter {
-    private ignoredClientIDs: string[] = [];
+    private keycloakClientService: ClientService;
+    private watchRequest: WatchRequestProcessor;
+    private aborted = false;
 
     constructor(private namespace: string) {
         super();
+
+        this.watchRequest = new WatchRequestProcessor();
+        this.keycloakClientService = Container.get(ClientService);
     }
 
-    async process() {
-        logger.info(`Starting watch abstractions`);
+    private get path(): string {
+        const resoureNamePlural = config.get('k8s.resource.name');
+        const apiVersion = config.get('k8s.resource.apiVersion');
 
-        try {
-            const apiVersion = config.get('k8s.resource.apiVersion');
-            const resourceUrl = `/apis/${apiVersion}/namespaces/${this.namespace}/${config.get('k8s.resource.name')}`;
-            const k8sApiRequest = new APIRequestProcessor();
-            const response = await k8sApiRequest.getAll(resourceUrl);
+        return `/apis/${apiVersion}/namespaces/${this.namespace}/${resoureNamePlural}`;
+    }
 
-            this.emit(WatcherEvent.LIST, response.items);
+    /**
+     * Watch for resources
+     */
+    async start() {
+        if (this.aborted) {
+            throw new Error('Unable to start. Watch aborted.');
+        }
 
-            if (config.has('keycloak.clientAttributes')) {
-                await keycloakAdminService.auth();
+        const resourceVersion = await this.mergeAll();
+        await this.watch(resourceVersion);
+    }
 
-                const clients = await keycloakAdminService.api.clients.find({
-                    realm: config.get('keycloak.realm'),
-                });
+    /**
+     * Abort watch
+     */
+    async abort() {
+        this.watchRequest.abort();
+    }
 
-                const notFoundClientAbstractions = clients.filter(c => {
-                    if (!c.attributes || !c.attributes.namespace) {
-                        return false;
-                    }
+    private async watch(resourceVersion: string): Promise<void> {
+        if (this.aborted) {
+            return;
+        }
 
-                    const clientAttributes: { [key: string]: string } = {
-                        ...config.get('keycloak.clientAttributes'),
-                        ...{ namespace: this.namespace },
-                    };
-
-                    const intersect = intersection(
-                        Object.keys(c.attributes || {}),
-                        Object.keys(config.get('keycloak.clientAttributes')),
-                    );
-
-                    return (
-                        intersect.length === Object.keys(config.get('keycloak.clientAttributes')).length &&
-                        c.attributes.namespace === this.namespace &&
-                        sum(
-                            intersect.map(propertyName =>
-                                Number(
-                                    c.attributes &&
-                                        c.attributes[propertyName] &&
-                                        c.attributes[propertyName] === clientAttributes[propertyName],
-                                ),
-                            ),
-                        ) === Object.keys(config.get('keycloak.clientAttributes')).length &&
-                        !response.items.find(i => i.spec.clientId === c.clientId)
-                    );
-                });
-
-                await Promise.all(
-                    notFoundClientAbstractions.map(async (c: any) => {
-                        logger.info(`Removed clint "${c.clientId}" because abstraction not found`);
-
-                        return await keycloakAdminService.api.clients.del({ id: c.id });
-                    }),
-                );
-            }
-
-            await Promise.all(
-                response.items
-                    .filter(c => this.ignoredClientIDs.indexOf(c.clientId) === -1)
-                    .map(async resourceItem => await this.clientCreateOrUpdate(resourceItem)),
-            );
-
-            const watchRequest = new WatchRequestProcessor();
-            await watchRequest.watch(
-                resourceUrl,
-                <IWatchHandlers>{
-                    gone: async () => {
-                        logger.info(`Gone`);
-                        this.emit(WatcherEvent.GONE);
-
-                        setTimeout(() => this.process(), 1000);
-                    },
-
-                    added: async (obj: IKeycloakClientResource) => {
-                        logger.info(`Added abstraction ${obj.metadata.name}`);
-
-                        await this.clientCreateOrUpdate(obj, true);
-                        this.emit(WatcherEvent.ADDED, obj);
-                    },
-
-                    modified: async (obj: IKeycloakClientResource) => {
-                        logger.info(`Modified abstraction ${obj.metadata.name}`);
-
-                        await this.clientCreateOrUpdate(obj, true);
-                        this.emit(WatcherEvent.MODIFIED, obj);
-                    },
-
-                    deleted: async (obj: IKeycloakClientResource) => {
-                        logger.info(`Deleted abstraction ${obj.metadata.name}`);
-
-                        await keycloakManagerService.remove(obj.spec);
-                        this.emit(WatcherEvent.DELETED, obj);
-                    },
+        await this.watchRequest.watch(
+            this.path,
+            <IWatchHandlers>{
+                added: async (obj: IKeycloakClientResource) => {
+                    logger.info(`Added abstraction ${obj.metadata.name}`);
+                    const processor = new KeycloakAdminClientProcessor();
+                    const api = await processor.getAPI();
+                    await this.clientCreateOrUpdate(api, obj);
+                    this.emit(WatcherEvent.ADDED, obj);
                 },
-                response.resourceVersion,
-            );
-        } catch (e) {
-            this.emit(WatcherEvent.ERROR, e);
-            logger.error(e.message);
 
-            if (e instanceof AuthException) {
-                logger.error('Keycloak auth failed');
-            }
+                modified: async (obj: IKeycloakClientResource) => {
+                    logger.info(`Modified abstraction ${obj.metadata.name}`);
+                    const processor = new KeycloakAdminClientProcessor();
+                    const api = await processor.getAPI();
+                    await this.clientCreateOrUpdate(api, obj);
+                    this.emit(WatcherEvent.MODIFIED, obj);
+                },
 
-            if (e instanceof ClientException) {
-                this.ignoredClientIDs.push(e.clientId);
-                this.emit(WatcherEvent.IGNORING_CLIENT, e.clientId);
-
-                logger.error(`client "${e.clientId}" added to ignoring list`);
-                setTimeout(() => this.process(), 1000);
-            } else {
-                process.exit(1);
-            }
-        }
+                deleted: async (obj: IKeycloakClientResource) => {
+                    logger.info(`Deleted abstraction ${obj.metadata.name}`);
+                    const processor = new KeycloakAdminClientProcessor();
+                    const api = await processor.getAPI();
+                    await this.keycloakClientService.remove(api, obj.spec);
+                    this.emit(WatcherEvent.DELETED, obj);
+                },
+            },
+            resourceVersion,
+        );
     }
 
-    private clearIgnoreClient(clientId: string) {
-        const index = this.ignoredClientIDs.indexOf(clientId);
+    /**
+     * Merge all resources
+     */
+    private async mergeAll(): Promise<string> {
+        const resoureNamePlural = config.get('k8s.resource.name');
+        logger.info(`Fetching all ${resoureNamePlural} from k8s to compare with Keycloak`);
 
-        if (index > -1) {
-            this.ignoredClientIDs.splice(index, 1);
-            this.emit(WatcherEvent.CLEAR_IGNORE_CLIENT, clientId);
+        const k8sApiRequest = new APIRequestProcessor();
+        const resources = await k8sApiRequest.getAll(this.path);
+        this.emit(WatcherEvent.LIST, resources.items);
+
+        const processor = new KeycloakAdminClientProcessor();
+        const api = await processor.getAPI();
+
+        const existingClients = await api.clients.find({
+            realm: config.get('keycloak.realm'),
+        });
+
+        const clientAttributes = this.keycloakClientService.generateClientAttributes(this.namespace, {});
+
+        // first find clients that present in Keycloak but no longer in K8s
+        const clientsToRemove = existingClients.filter(c => {
+            if (!c.attributes || !c.attributes.namespace) {
+                return false;
+            }
+
+            for (const name of Object.keys(clientAttributes)) {
+                if (!c.attributes[name] || c.attributes[name] !== clientAttributes[name]) {
+                    return false;
+                }
+            }
+
+            const k8sResource = resources.items.find(r => r.clientId === c.clientId);
+
+            return !k8sResource;
+        });
+
+        for (const client of clientsToRemove) {
+            logger.info(`Removing client "${client.clientId}"`);
+            await api.clients.del({ id: client.id || '' });
         }
+
+        // create or update new ones
+        for (const client of resources.items) {
+            logger.info(`Creating or updating client "${client.clientId}"`);
+            await this.clientCreateOrUpdate(api, client);
+        }
+
+        return resources.resourceVersion;
     }
 
-    private async clientCreateOrUpdate(obj: IKeycloakClientResource, force = false) {
-        if (force) {
-            this.clearIgnoreClient(obj.spec.clientId);
-        }
-
+    private async clientCreateOrUpdate(keycloakClient: KeycloakClient, obj: IKeycloakClientResource) {
         try {
-            return await keycloakManagerService.createOrUpdate(obj.spec, obj.metadata.namespace);
+            return await this.keycloakClientService.createOrUpdate(keycloakClient, obj.spec, obj.metadata.namespace);
         } catch (e) {
             if (e instanceof HttpException) {
-                throw new ClientException(obj.spec.clientId, e.message);
+                logger.error(`Failed to create or update client ${obj.spec.clientId}`, e);
+
+                return;
             }
 
             throw e;

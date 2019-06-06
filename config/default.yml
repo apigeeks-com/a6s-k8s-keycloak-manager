@@ -8,7 +8,8 @@ keycloak:
   # This attributes will be added to all created clients and will be used to load from Keycloak
   # upon merging - upon start keycloak manager will load all resources and compare them with clients 
   # registered on Keycloak. Only clients with given attributes will be used for merging.
-  clientAttributes: {}    
+  #clientAttributes: 
+  #  name: value
   
   auth:
     username: 'admin'

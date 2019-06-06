@@ -36,7 +36,7 @@ else
   echo "<- tiller installed"  
 
   echo "-> waiting for tiller to boot..."
-  until kubectl get pod -n kube-system | grep tiller | grep 1/1 | grep Running
+  until kubectl get pod -n kube-system | grep tiller | grep 1/1 | grep Running > /dev/null
   do
     sleep 1
   done  

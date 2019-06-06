@@ -2,7 +2,6 @@
 #
 # DOCKER_HUB_USERNAME
 # DOCKER_HUB_PASSWORD
-#
 version: 2
 
 defaults: &defaults
@@ -15,6 +14,60 @@ defaults: &defaults
 
 jobs:
   build:
+    machine: true
+    steps:
+      - run:
+          name: Install nvm
+          command: |
+            curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.8/install.sh | bash
+
+            if [[ -z "$CIRCLE_BUILD_NUM" ]]; then       
+              export NVM_DIR="$HOME/.nvm"
+              echo 'export NVM_DIR=$HOME/.nvm' >> $BASH_ENV
+              echo 'source $NVM_DIR/nvm.sh' >> $BASH_ENV
+            else 
+              export NVM_DIR=/opt/circleci/.nvm
+              echo 'export NVM_DIR=/opt/circleci/.nvm' >> $BASH_ENV
+              echo 'source $NVM_DIR/nvm.sh' >> $BASH_ENV
+            fi
+      - run:  
+          name: Install Node.js
+          command: |           
+            nvm install --lts
+            nvm alias default 'lts/*'
+            # Install Yarn package manager
+            npm install --global yarn
+      - run:
+          name: Install Docker Compose
+          command: |
+            curl -L https://github.com/docker/compose/releases/download/1.19.0/docker-compose-`uname -s`-`uname -m` > ~/docker-compose
+            chmod +x ~/docker-compose
+            sudo mv ~/docker-compose /usr/local/bin/docker-compose
+      
+      - checkout
+
+      - run: 
+          name: yarn install && yarn build
+          command: |
+            yarn install
+            yarn build     
+      - run: 
+          name: run tests and generate coverage report
+          command: |
+            yarn docker:test                                  
+      
+      # send test coverage
+      - run: bash <(curl -s https://codecov.io/bash) -f ./coverage/coverage.lcov      
+
+      # store artifacts
+      - store_artifacts:
+          path: ./coverage
+
+      # store artifacts
+      - store_artifacts:
+          path: ./mochawesome-report
+
+  build_only:
     <<: *defaults
     steps:
       - checkout
@@ -72,10 +125,19 @@ workflows:
       - build:
           filters:
             tags:
+              only: /^[0-9]+\.[0-9]+\.[0-9]+/   
+
+      - build_only:           
+          filters:
+            tags:
               only: /^[0-9]+\.[0-9]+\.[0-9]+/
+            branches:
+              ignore: /.*/
+
       - deploy:
           requires:
             - build
+            - build_only
           filters:
             tags:
               only: /^[0-9]+\.[0-9]+\.[0-9]+/

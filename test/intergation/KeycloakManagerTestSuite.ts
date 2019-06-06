@@ -2,12 +2,11 @@ import 'reflect-metadata';
 import 'mocha';
 import * as axios from 'axios';
 import { assert, expect } from 'chai';
-import { Container } from 'typedi';
-import { KeycloakAdminService } from '../../src/service';
 import { promiseExec } from './utils';
 import { ResourceWatcher, WatcherEvent } from '../../src/ResourceWatcher';
 import { config } from '../../src/utils/config';
 import { HttpException } from '../../src/exception';
+import { KeycloakAdminClientProcessor } from '../../src/processors/KeycloakAdminClientProcessor';
 
 axios.default.interceptors.response.use(
     (response: axios.AxiosResponse) => response,
@@ -18,13 +17,12 @@ axios.default.interceptors.response.use(
     },
 );
 
-const keycloakAdminService = Container.get(KeycloakAdminService);
 let watcher: ResourceWatcher;
 
 describe('KeycloakManagerTestSuite', function() {
     before(async () => {
         watcher = new ResourceWatcher('default');
-        watcher.process();
+        await watcher.start();
     });
 
     afterEach(async () => {
@@ -51,8 +49,9 @@ describe('KeycloakManagerTestSuite', function() {
         await promiseExec(`kubectl apply -f ${__dirname}/assets/client-create.yml`);
         await promiseEvent;
 
-        await keycloakAdminService.auth();
-        const clients = await keycloakAdminService.api.clients.find();
+        const processor = new KeycloakAdminClientProcessor();
+        const api = await processor.getAPI();
+        const clients = await api.clients.find();
 
         const client = clients.find(c => c.clientId === 'test-client');
         assert(client, 'Client not found');
@@ -75,8 +74,9 @@ describe('KeycloakManagerTestSuite', function() {
         await promiseExec(`kubectl apply -f ${__dirname}/assets/client-update.yml`);
         await updatePromiseEvent;
 
-        await keycloakAdminService.auth();
-        const clients = await keycloakAdminService.api.clients.find();
+        const processor = new KeycloakAdminClientProcessor();
+        const api = await processor.getAPI();
+        const clients = await api.clients.find();
 
         const client = clients.find(c => c.clientId === 'test-client');
 
@@ -100,8 +100,9 @@ describe('KeycloakManagerTestSuite', function() {
         await promiseExec(`kubectl delete keycloakclients test-client`);
         await deletedPromiseEvent;
 
-        await keycloakAdminService.auth();
-        const clients = await keycloakAdminService.api.clients.find();
+        const processor = new KeycloakAdminClientProcessor();
+        const api = await processor.getAPI();
+        const clients = await api.clients.find();
 
         const client = clients.find(c => c.clientId === 'test-client');
 
@@ -117,8 +118,9 @@ describe('KeycloakManagerTestSuite', function() {
         await promiseExec(`kubectl apply -f ${__dirname}/assets/client-create.yml`);
         await createPromiseEvent;
 
-        await keycloakAdminService.auth();
-        const allRoles = await keycloakAdminService.api.roles.find();
+        const processor = new KeycloakAdminClientProcessor();
+        const api = await processor.getAPI();
+        const allRoles = await api.roles.find();
 
         const roles = allRoles
             .filter(c => ['realm-role1', 'realm-role2'].indexOf((c as any).name) !== -1)
@@ -136,15 +138,16 @@ describe('KeycloakManagerTestSuite', function() {
         await promiseExec(`kubectl apply -f ${__dirname}/assets/client-create.yml`);
         await createPromiseEvent;
 
-        await keycloakAdminService.auth();
-        const clients = await keycloakAdminService.api.clients.find({
+        const processor = new KeycloakAdminClientProcessor();
+        const api = await processor.getAPI();
+        const clients = await api.clients.find({
             clientId: 'test-client',
             realm: config.get('keycloak.realm'),
         });
 
         const client = clients.find(c => c.clientId === 'test-client');
 
-        const clientRoles = await keycloakAdminService.api.clients.listRoles({
+        const clientRoles = await api.clients.listRoles({
             id: (client as any).id,
             realm: config.get('keycloak.realm'),
         });
@@ -165,8 +168,9 @@ describe('KeycloakManagerTestSuite', function() {
         await promiseExec(`kubectl apply -f ${__dirname}/assets/client-create.yml`);
         await createPromiseEvent;
 
-        await keycloakAdminService.auth();
-        const clientScopes = await keycloakAdminService.api.clientScope.find();
+        const processor = new KeycloakAdminClientProcessor();
+        const api = await processor.getAPI();
+        const clientScopes = await api.clientScope.find();
 
         expect(clientScopes.map(cs => cs.name))
             .to.be.an('array')
@@ -181,15 +185,16 @@ describe('KeycloakManagerTestSuite', function() {
 
         await promiseExec(`kubectl apply -f ${__dirname}/assets/client-create.yml`);
         await createPromiseEvent;
-        await keycloakAdminService.auth();
+        const processor = new KeycloakAdminClientProcessor();
+        const api = await processor.getAPI();
 
-        const groups = await keycloakAdminService.api.groups.find({
+        const groups = await api.groups.find({
             realm: config.get('keycloak.realm'),
         });
 
         const group = groups.find(g => g.name === 'client-group1');
 
-        const groupRealmRoles = await keycloakAdminService.api.groups.listRealmRoleMappings({
+        const groupRealmRoles = await api.groups.listRealmRoleMappings({
             id: (group as any).id,
             realm: config.get('keycloak.realm'),
         });

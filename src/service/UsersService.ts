@@ -2,34 +2,31 @@ import * as prettyjson from 'prettyjson';
 import { Inject, Service } from 'typedi';
 import { Logger } from 'log4js';
 import { InjectLogger } from '../decorator';
-import { KeycloakAdminService } from './KeycloakAdminService';
 import { RoleMappingPayload } from 'keycloak-admin/lib/defs/roleRepresentation';
 import { IKeycloakUser } from '../interface';
 import { RolesService } from './RolesService';
 import ClientRepresentation from 'keycloak-admin/lib/defs/clientRepresentation';
 import { ProcessException } from '../exception';
 import { config } from '../utils/config';
+import { KeycloakClient } from '../KeycloakClient';
 
 @Service()
 export class UsersService {
-    @Inject()
-    private keycloakAdmin!: KeycloakAdminService;
-
     @Inject()
     private rolesService!: RolesService;
 
     @InjectLogger('services/UsersService')
     private logger!: Logger;
 
-    async create({ password, ...user }: IKeycloakUser) {
+    async create(keycloakClient: KeycloakClient, { password, ...user }: IKeycloakUser) {
         this.logger.debug(`Create user: \n${prettyjson.render(user)}`);
-        await this.keycloakAdmin.api.users.create({ ...user, realm: config.get('keycloak.realm') });
+        await keycloakClient.users.create({ ...user, realm: config.get('keycloak.realm') });
 
         this.logger.debug('Set user password');
 
-        const userFound = (await this.findOne(user.email)) as IKeycloakUser;
+        const userFound = (await this.findOne(keycloakClient, user.email)) as IKeycloakUser;
 
-        await this.keycloakAdmin.api.users.resetPassword({
+        await keycloakClient.users.resetPassword({
             realm: config.get('keycloak.realm'),
             id: userFound.id,
             credential: {
@@ -40,27 +37,27 @@ export class UsersService {
         });
     }
 
-    async update(id: string, { password, ...user }: IKeycloakUser) {
+    async update(keycloakClient: KeycloakClient, id: string, { password, ...user }: IKeycloakUser) {
         this.logger.debug(`Update user: \n${prettyjson.render(user)}`);
-        await this.keycloakAdmin.api.users.update({ id, realm: config.get('keycloak.realm') }, user);
+        await keycloakClient.users.update({ id, realm: config.get('keycloak.realm') }, user);
     }
 
-    async updateOrCreate(associatedUsers: IKeycloakUser[]) {
+    async updateOrCreate(keycloakClient: KeycloakClient, associatedUsers: IKeycloakUser[]) {
         this.logger.debug(`Create or update users: \n${prettyjson.render(associatedUsers)}`);
 
         associatedUsers.map(async user => {
-            let userFound = (await this.findOne((user as any).email)) as IKeycloakUser;
+            let userFound = (await this.findOne(keycloakClient, (user as any).email)) as IKeycloakUser;
 
             if (userFound && userFound.id) {
-                await this.update(userFound.id, { ...userFound, password: user.password });
+                await this.update(keycloakClient, userFound.id, { ...userFound, password: user.password });
             } else {
-                await this.create(user);
-                userFound = (await this.findOne((user as any).email)) as IKeycloakUser;
+                await this.create(keycloakClient, user);
+                userFound = (await this.findOne(keycloakClient, (user as any).email)) as IKeycloakUser;
             }
 
             // Append to group
             if (userFound && user.groups && Array.isArray(user.groups)) {
-                const groups = await this.keycloakAdmin.api.groups.find({ realm: config.get('keycloak.realm') });
+                const groups = await keycloakClient.groups.find({ realm: config.get('keycloak.realm') });
 
                 await Promise.all(
                     user.groups.map(async groupName => {
@@ -69,7 +66,7 @@ export class UsersService {
                         const group = groups.find(g => g.name === groupName);
 
                         if (group) {
-                            this.keycloakAdmin.api.users.addToGroup({
+                            keycloakClient.users.addToGroup({
                                 id: userFound.id,
                                 realm: config.get('keycloak.realm'),
                                 groupId: (group as any).id,
@@ -85,7 +82,7 @@ export class UsersService {
                 this.logger.debug(`Client role mappings for user: ${user.email}`);
                 await Promise.all(
                     Object.entries(user.clientRoles).map(async ([clientName, roles]) => {
-                        const clientList = await this.keycloakAdmin.api.clients.find({
+                        const clientList = await keycloakClient.clients.find({
                             realm: config.get('keycloak.realm'),
                             clientId: clientName,
                         });
@@ -96,11 +93,11 @@ export class UsersService {
 
                         const client: ClientRepresentation | any = clientList.pop();
 
-                        const appendRoles = await this.rolesService.findClientRoles(client, roles);
+                        const appendRoles = await this.rolesService.findClientRoles(keycloakClient, client, roles);
 
                         if (appendRoles && appendRoles.length) {
                             // TODO: It may be necessary to remove irrelevant roles.
-                            await this.keycloakAdmin.api.users.addClientRoleMappings({
+                            await keycloakClient.users.addClientRoleMappings({
                                 realm: config.get('keycloak.realm'),
                                 id: (userFound as any).id,
                                 clientUniqueId: (client as any).id,
@@ -113,10 +110,10 @@ export class UsersService {
 
             if (userFound && user.realmRoles) {
                 this.logger.debug(`Realm role mappings for user: ${user.email}`);
-                const appendRoles = await this.rolesService.findRealmRoles(user.realmRoles);
+                const appendRoles = await this.rolesService.findRealmRoles(keycloakClient, user.realmRoles);
 
                 if (appendRoles && appendRoles.length) {
-                    await this.keycloakAdmin.api.users.addRealmRoleMappings({
+                    await keycloakClient.users.addRealmRoleMappings({
                         realm: config.get('keycloak.realm'),
                         id: (userFound as any).id,
                         roles: <RoleMappingPayload[]>appendRoles,
@@ -126,9 +123,9 @@ export class UsersService {
         });
     }
 
-    private async findOne(email: string) {
+    private async findOne(keycloakClient: KeycloakClient, email: string) {
         this.logger.debug(`Find user by email: ${email}`);
-        const users = await this.keycloakAdmin.api.users.find({ email: email, realm: config.get('keycloak.realm') });
+        const users = await keycloakClient.users.find({ email: email, realm: config.get('keycloak.realm') });
 
         if (users.length) {
             return users.pop();
