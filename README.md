@@ -1,5 +1,7 @@
 # a6s-k8s-keycloak-manager
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/apigeeks-com/a6s-k8s-keycloak-manager.svg)](https://greenkeeper.io/)
+
 Keycloak management service based on K8s custom resource definitions
 
 ## Aim
