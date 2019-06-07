@@ -10,7 +10,7 @@ import { ProcessException } from '../exception';
 import { KeycloakClient } from '../KeycloakClient';
 
 export abstract class BaseRoleService {
-    @Inject()
+    @Inject(() => RolesService)
     protected rolesService!: RolesService;
 
     @InjectLogger('services/RoleService')

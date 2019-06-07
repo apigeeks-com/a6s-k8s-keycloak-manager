@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import { APIRequestProcessor, WatchRequestProcessor, IWatchHandlers } from '@fireblink/k8s-api-client';
-import { IKeycloakClientResource, IKeycloakClientResourceSpec} from './interface';
+import { IKeycloakClientResource } from './interface';
 import { getLogger } from 'log4js';
 import { HttpException } from './exception';
 import { config } from './utils/config';
@@ -54,6 +54,7 @@ export class ResourceWatcher extends EventEmitter {
      * Abort watch
      */
     async abort() {
+        this.removeAllListeners();
         this.watchRequest.abort();
     }
 

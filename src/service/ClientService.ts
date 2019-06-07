@@ -19,28 +19,28 @@ import { APIRequestProcessor } from '@fireblink/k8s-api-client';
 
 @Service()
 export class ClientService {
-    @Inject()
+    @Inject(() => ClientRoleService)
     private clientRoleService!: ClientRoleService;
 
-    @Inject()
+    @Inject(() => RealmRoleService)
     private realmRoleService!: RealmRoleService;
 
-    @Inject()
+    @Inject(() => ClientRoleMappersService)
     private clientRoleMappersService!: ClientRoleMappersService;
 
-    @Inject()
+    @Inject(() => RealmRoleMappersService)
     private realmRoleMappersService!: RealmRoleMappersService;
 
-    @Inject()
+    @Inject(() => UsersService)
     private usersService!: UsersService;
 
-    @Inject()
+    @Inject(() => GroupService)
     private groupService!: GroupService;
 
-    @Inject()
+    @Inject(() => ClientScopeService)
     private clientScopesService!: ClientScopeService;
 
-    @Inject()
+    @Inject(() => RolesService)
     private rolesService!: RolesService;
 
     @InjectLogger('services/ClientService')
@@ -65,11 +65,7 @@ export class ClientService {
         return clientAttributes;
     }
 
-    async create(
-        keycloakClient: KeycloakClient,
-        spec: IKeycloakClientResourceSpec,
-        namespace: string,
-    ) {
+    async create(keycloakClient: KeycloakClient, spec: IKeycloakClientResourceSpec, namespace: string) {
         if (!spec.client.clientId) {
             throw new Error('Unable to create client without clientId field');
         }
@@ -89,15 +85,11 @@ export class ClientService {
             throw new Error(`Unable to find client ${spec.client.clientId} after creation`);
         }
 
-        spec.client = client;
+        spec.client.id = client.id;
         await this.processingAfterCreate(keycloakClient, spec);
     }
 
-    async update(
-        keycloakClient: KeycloakClient,
-        spec: IKeycloakClientResourceSpec,
-        namespace: string,
-    ) {
+    async update(keycloakClient: KeycloakClient, spec: IKeycloakClientResourceSpec, namespace: string) {
         if (!spec.client.clientId) {
             throw new Error('Unable to update client without clientId field');
         }
@@ -109,7 +101,7 @@ export class ClientService {
                 throw new ProcessException(`Client "${spec.client.clientId}" not found`);
             }
 
-            spec.client = client;
+            spec.client.id = client.id;
         }
 
         if (!spec.client.id) {
@@ -130,7 +122,7 @@ export class ClientService {
 
     async resolveSecret(client: ClientRepresentation, namespace: string): Promise<void> {
         if (client.secret && client.secret.hasOwnProperty('secretKeyRef')) {
-            const secretKeyRef: {name: string; key: string} = (<any> client.secret).secretKeyRef;
+            const secretKeyRef: { name: string; key: string } = (<any>client.secret).secretKeyRef;
             const api = new APIRequestProcessor();
             const secret = await api.get(`/api/v1/namespaces/${namespace}/secrets/${secretKeyRef.name}`);
             const { data } = secret;
@@ -143,10 +135,7 @@ export class ClientService {
         }
     }
 
-    async remove(
-        keycloakClient: KeycloakClient,
-        spec: IKeycloakClientResourceSpec,
-    ) {
+    async remove(keycloakClient: KeycloakClient, spec: IKeycloakClientResourceSpec) {
         if (!spec.client.clientId) {
             throw new Error('Unable to remove client without clientId field');
         }
@@ -166,11 +155,7 @@ export class ClientService {
         }
     }
 
-    async createOrUpdate(
-        keycloakClient: KeycloakClient,
-        spec: IKeycloakClientResourceSpec,
-        namespace: string,
-    ) {
+    async createOrUpdate(keycloakClient: KeycloakClient, spec: IKeycloakClientResourceSpec, namespace: string) {
         if (!spec.client.clientId) {
             throw new Error('Unable to create or update client without clientId field');
         }
@@ -180,18 +165,10 @@ export class ClientService {
         const client = await this.findOne(keycloakClient, spec.client.clientId);
 
         if (client) {
-            spec.client = client;
-            await this.update(
-                keycloakClient,
-                spec,
-                namespace,
-            );
+            spec.client.id = client.id;
+            await this.update(keycloakClient, spec, namespace);
         } else {
-            await this.create(
-                keycloakClient,
-                spec,
-                namespace,
-            );
+            await this.create(keycloakClient, spec, namespace);
         }
     }
 
@@ -212,10 +189,7 @@ export class ClientService {
         }
     }
 
-    private async processingBeforeCreate(
-        keycloakClient: KeycloakClient,
-        spec: IKeycloakClientResourceSpec,
-    ) {
+    private async processingBeforeCreate(keycloakClient: KeycloakClient, spec: IKeycloakClientResourceSpec) {
         if (spec.clientScopes) {
             await this.clientScopesService.updateOrCreate(keycloakClient, spec.clientScopes);
         }
@@ -225,10 +199,7 @@ export class ClientService {
         }
     }
 
-    private async processingAfterCreate(
-        keycloakClient: KeycloakClient,
-        spec: IKeycloakClientResourceSpec,
-    ) {
+    private async processingAfterCreate(keycloakClient: KeycloakClient, spec: IKeycloakClientResourceSpec) {
         if (!spec.client.id) {
             throw new Error('Unable to process client without ID');
         }

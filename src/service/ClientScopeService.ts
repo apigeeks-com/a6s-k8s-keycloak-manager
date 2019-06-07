@@ -8,7 +8,7 @@ import { KeycloakClient } from '../KeycloakClient';
 
 @Service()
 export class ClientScopeService {
-    @Inject()
+    @Inject(() => RolesService)
     private rolesService!: RolesService;
 
     @InjectLogger('services/ClientScopeService')

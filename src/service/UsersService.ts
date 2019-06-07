@@ -12,7 +12,7 @@ import { KeycloakClient } from '../KeycloakClient';
 
 @Service()
 export class UsersService {
-    @Inject()
+    @Inject(() => RolesService)
     private rolesService!: RolesService;
 
     @InjectLogger('services/UsersService')

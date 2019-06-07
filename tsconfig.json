@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "outDir": "./dist",
+    "outDir": "dist/",
     "target": "es6",
     "module": "commonjs",
     "moduleResolution": "node",
@@ -9,11 +9,8 @@
     "sourceMap": true,
     "noImplicitAny": true,
     "declaration": true,
-    "strict": true,
-    "lib": ["es2017"],
-    "types": ["node"],
-    "pretty": true,
-    "typeRoots": ["node_modules/@types", "src/types"]
+    "rootDir": "."
   },
-  "exclude": ["dist", "coverage", ".nyc_output", "node_modules", "test"]
+  "include": ["index.ts", "src/**/*", "test/**/*"],
+  "exclude": ["build", "dist", "coverage", ".nyc_output", "node_modules"]
 }
