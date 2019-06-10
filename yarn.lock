@@ -227,10 +227,10 @@
   dependencies:
     find-up "^2.1.0"
 
-"@fireblink/k8s-api-client@1.1.1":
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/@fireblink/k8s-api-client/-/k8s-api-client-1.1.1.tgz#3ed010cb9978855ce98d188adc06a0710dd255a9"
-  integrity sha512-LJNSdVaR/xfeJEr0hW3nkorKtQQzGYYlm3u8b8tBJ956kyzhoREwvUIfPEDbp6wF8Fhsw+hhoEMW58S5pQFZJw==
+"@fireblink/k8s-api-client@1.1.2":
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/@fireblink/k8s-api-client/-/k8s-api-client-1.1.2.tgz#0774fc77d5d340095db9693a0c81ee5af75ca021"
+  integrity sha512-E5nWtY8VblnqWAnmsM0gtkijWCR4kX7JrruCqNpe3AQkuQtG1LAQGoZFE7AswsEWTlQt4di1UQN8N41Zva3+cA==
   dependencies:
     "@types/debug" "4.1.4"
     "@types/js-yaml" "3.12.1"
