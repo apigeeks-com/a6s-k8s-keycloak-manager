@@ -18,9 +18,9 @@ echo "<- Keycloak installed. Node port $KC_PORT"
 
 KC_HOST=$(kubectl get nodes --namespace default -o jsonpath="{.items[0].status.addresses[0].address}")
 
-echo "-> waiting for Keycloak to boot"
+echo "-> waiting for Keycloak to boot at host: $KC_HOST:$KC_PORT"
 count=0
-until wget http://$KC_HOST:$KC_PORT/auth/ > /dev/null
+until curl -s http://$KC_HOST:$KC_PORT/auth/ > /dev/null
 do
     count=$((count+1))
     if [[ count == 300 ]]; then

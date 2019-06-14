@@ -13,13 +13,11 @@ import { K8S_RESOURCE_NAME, K8S_API_V2 } from './constants';
 const logger = getLogger('watch');
 
 export enum WatcherEvent {
+    ERROR = 'error',
     LIST = 'list',
     ADDED = 'added',
     MODIFIED = 'modified',
     DELETED = 'deleted',
-    ERROR = 'error',
-    IGNORING_CLIENT = 'ignoring-client',
-    CLEAR_IGNORE_CLIENT = 'clear-ignore-client',
 }
 
 export class ResourceWatcher extends EventEmitter {
@@ -68,19 +66,34 @@ export class ResourceWatcher extends EventEmitter {
             <IWatchHandlers>{
                 added: async (obj: IKeycloakClientResource) => {
                     logger.info(`Added ${obj.metadata.name}`);
-                    await this.createOrUpdate(obj);
+                    try {
+                        await this.createOrUpdate(obj);
+                    } catch (e) {
+                        this.emit(WatcherEvent.ERROR, e);
+                        throw e;
+                    }
                     this.emit(WatcherEvent.ADDED, obj);
                 },
 
                 modified: async (obj: IKeycloakClientResource) => {
                     logger.info(`Modified ${obj.metadata.name}`);
-                    await this.createOrUpdate(obj);
+                    try {
+                        await this.createOrUpdate(obj);
+                    } catch (e) {
+                        this.emit(WatcherEvent.ERROR, e);
+                        throw e;
+                    }
                     this.emit(WatcherEvent.MODIFIED, obj);
                 },
 
                 deleted: async (obj: IKeycloakClientResource) => {
                     logger.info(`Deleted ${obj.metadata.name}`);
-                    await this.remove(obj);
+                    try {
+                        await this.remove(obj);
+                    } catch (e) {
+                        this.emit(WatcherEvent.ERROR, e);
+                        throw e;
+                    }
                     this.emit(WatcherEvent.DELETED, obj);
                 },
             },

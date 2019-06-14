@@ -5,6 +5,8 @@ bash test/scripts/k8s_init.sh
 
 # register custom resource definiton
 kubectl create -f /usr/app/test/intergation/assets/resourcedefinition-v2.yaml
+# add secrets
+kubectl create -f /usr/app/test/intergation/assets/keycloak-secrets.yml
 
 # hack for waiting tiller
 #sleep 30

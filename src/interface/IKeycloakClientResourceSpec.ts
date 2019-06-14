@@ -3,9 +3,10 @@ import RoleRepresentation from 'keycloak-admin/lib/defs/roleRepresentation';
 import GroupRepresentation from 'keycloak-admin/lib/defs/groupRepresentation';
 import { IKeycloakUser } from './IKeycloakUser';
 import { IKeycloakScope } from './IKeycloakScope';
+import { IClientRepresentation } from './IClientRepresentation';
 
 export interface IKeycloakClientResourceSpec {
-    client: ClientRepresentation;
+    client: IClientRepresentation;
     associatedUsers?: IKeycloakUser[];
     associatedGroups?: GroupRepresentation[];
     realmRoles?: RoleRepresentation[];

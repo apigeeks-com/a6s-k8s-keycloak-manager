@@ -14,8 +14,8 @@ import { RolesService } from './RolesService';
 import { ProcessException } from '../exception';
 import { RealmRoleService } from './RealmRoleService';
 import { KeycloakClient } from '../KeycloakClient';
-import ClientRepresentation from 'keycloak-admin/lib/defs/clientRepresentation';
 import { APIRequestProcessor } from '@fireblink/k8s-api-client';
+import { IClientRepresentation } from '../interface/IClientRepresentation';
 
 @Service()
 export class ClientService {
@@ -120,18 +120,18 @@ export class ClientService {
         await this.processingAfterCreate(keycloakClient, spec);
     }
 
-    async resolveSecret(client: ClientRepresentation, namespace: string): Promise<void> {
-        if (client.secret && client.secret.hasOwnProperty('secretKeyRef')) {
-            const secretKeyRef: { name: string; key: string } = (<any>client.secret).secretKeyRef;
+    async resolveSecret(client: IClientRepresentation, namespace: string): Promise<void> {
+        if (client.secretKeyRef) {
             const api = new APIRequestProcessor();
-            const secret = await api.get(`/api/v1/namespaces/${namespace}/secrets/${secretKeyRef.name}`);
+            const secret = await api.get(`/api/v1/namespaces/${namespace}/secrets/${client.secretKeyRef.name}`);
             const { data } = secret;
 
-            if (!data[secretKeyRef.key]) {
-                throw new Error(`Unable to find key ${secretKeyRef.key} in secret ${secretKeyRef.name}`);
+            if (!data[client.secretKeyRef.key]) {
+                throw new Error(`Unable to find key ${client.secretKeyRef.key} in secret ${client.secretKeyRef.name}`);
             }
 
-            client.secret = new Buffer(data[secretKeyRef.key], 'base64').toString('utf-8');
+            client.secret = new Buffer(data[client.secretKeyRef.key], 'base64').toString('utf-8');
+            delete client.secretKeyRef;
         }
     }
 

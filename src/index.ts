@@ -7,6 +7,11 @@ import { HttpException } from './exception';
 
 log4js.configure(config.get('log4js'));
 
+process.on('unhandledRejection', (reason, p) => {
+    console.error('Unhandled Rejection at: Promise', p, 'reason:', reason);
+    process.exit(1);
+});
+
 axios.default.interceptors.response.use(
     (response: axios.AxiosResponse) => response,
     (error: any) => {
