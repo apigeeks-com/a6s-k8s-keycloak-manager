@@ -7,4 +7,8 @@ ADD . /app
 RUN yarn build
 RUN yarn install --prod
 
+# Add Tini to resolve PID 1 issue
+RUN apk add --no-cache tini
+ENTRYPOINT ["tini", "--"]
+
 CMD ["yarn", "start"]
