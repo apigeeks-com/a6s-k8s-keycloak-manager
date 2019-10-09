@@ -38,7 +38,7 @@
     "@commitlint/config-conventional": "8.0.0",
     "@types/chai": "4.1.7",
     "@types/config": "0.0.34",
-    "@types/lodash": "4.14.134",
+    "@types/lodash": "4.14.143",
     "@types/mocha": "5.2.7",
     "@types/node": "12.0.7",
     "@types/prettyjson": "0.0.29",
